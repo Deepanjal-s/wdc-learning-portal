@@ -101,6 +101,7 @@ export const recruitmentRoundSeed = {
   title: 'Round 2 · UI/UX Practical',
   description: 'A practical design exercise to assess interface thinking, Figma fundamentals, and how clearly you communicate design decisions.',
   requirements: ['Complete the four-week UI/UX preparation roadmap', 'Be comfortable creating and organizing a Figma file', 'Explain key choices around hierarchy, spacing, and consistency'],
+  releaseDateTime: '2026-09-30T18:00:00.000Z',
   submissionInstructions: 'Submission format and deadline will be announced by WDC seniors. Keep your Figma file shareable and prepare a short explanation of your design decisions.',
   evaluationCriteria: ['Visual hierarchy and clarity', 'Spacing, alignment, and consistency', 'Figma file organization', 'Ability to explain design decisions'],
   status: 'upcoming',

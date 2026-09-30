@@ -54,8 +54,8 @@ export async function register(request, response) {
   if (typeof password !== 'string' || password.length < 8) {
     throw new HttpError(400, 'Password must contain at least 8 characters.');
   }
-  if (year !== undefined && year !== '' && (!Number.isInteger(Number(year)) || Number(year) < 1 || Number(year) > 6)) {
-    throw new HttpError(400, 'Year must be a number between 1 and 6.');
+  if (year === undefined || year === '' || !Number.isInteger(Number(year)) || Number(year) !== 2) {
+    throw new HttpError(400, 'Only second-year students can register for this program.');
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
@@ -65,7 +65,7 @@ export async function register(request, response) {
     email: email.trim().toLowerCase(),
     passwordHash,
     branch: typeof branch === 'string' ? branch.trim().slice(0, 80) : undefined,
-    year: year !== undefined && year !== '' ? Number(year) : undefined,
+    year: 2,
     selectedTrackId: defaultTrack?._id ?? null,
   });
 

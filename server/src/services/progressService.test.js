@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildProgressSummary } from './progressService.js';
+import { buildProgressSummary, isWeekUnlocked } from './progressService.js';
 
 const track = {
   _id: 'track-1',
@@ -58,4 +58,23 @@ test('counts curated resources and recognizes resource completion', () => {
   assert.equal(summary.completedCount, 2);
   assert.equal(summary.percentage, 29);
   assert.ok(summary.steps.some((step) => step.type === 'resource' && step.id === 'resource-1' && step.completed));
+});
+
+test('locks future weeks until the previous week is fully completed', () => {
+  const summary = buildProgressSummary(track, tasks, {
+    completedTopicKeys: ['frames'],
+    completedResourceIds: [],
+    completedTaskIds: [],
+  });
+
+  assert.equal(isWeekUnlocked(track, summary, 'week-1'), true);
+  assert.equal(isWeekUnlocked(track, summary, 'week-2'), false);
+
+  const nextSummary = buildProgressSummary(track, tasks, {
+    completedTopicKeys: ['frames', 'layers', 'type'],
+    completedResourceIds: [],
+    completedTaskIds: ['task-1', 'task-2'],
+  });
+
+  assert.equal(isWeekUnlocked(track, nextSummary, 'week-2'), true);
 });

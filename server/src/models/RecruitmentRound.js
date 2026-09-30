@@ -9,6 +9,7 @@ const recruitmentRoundSchema = new mongoose.Schema(
     requirements: { type: [String], default: [] },
     resourceIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Resource' }],
     taskIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Task' }],
+    releaseDateTime: { type: Date, default: null },
     deadline: { type: Date, default: null },
     submissionInstructions: { type: String, default: '' },
     evaluationCriteria: { type: [String], default: [] },

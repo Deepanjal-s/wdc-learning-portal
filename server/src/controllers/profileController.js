@@ -30,8 +30,8 @@ export async function updateProfile(request, response) {
   if (name !== undefined && (typeof name !== 'string' || name.trim().length < 2)) {
     throw new HttpError(400, 'Name must contain at least 2 characters.');
   }
-  if (year !== undefined && year !== null && (!Number.isInteger(Number(year)) || Number(year) < 1 || Number(year) > 6)) {
-    throw new HttpError(400, 'Year must be a number between 1 and 6.');
+  if (year !== undefined && year !== null && (!Number.isInteger(Number(year)) || Number(year) !== 2)) {
+    throw new HttpError(400, 'Only second-year students can use this portal.');
   }
   if (selectedTrackId !== undefined) {
     const track = await Track.findOne({ _id: selectedTrackId, isActive: true }).select('_id');

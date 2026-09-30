@@ -13,7 +13,11 @@ export async function getDashboard(request, response) {
   const user = serializeUser(request.user);
   const tracks = await Track.find({ isActive: true }).select('slug title description').sort({ title: 1 }).lean();
   const track = request.user.selectedTrackId ? await Track.findOne({ _id: request.user.selectedTrackId, isActive: true }) : null;
-  const rounds = await RecruitmentRound.find({ status: { $ne: 'draft' } }).select('roundNumber title description status deadline').sort({ roundNumber: 1 }).lean();
+  const now = new Date();
+  const rounds = await RecruitmentRound.find({
+    status: { $ne: 'draft' },
+    $or: [{ releaseDateTime: null }, { releaseDateTime: { $lte: now } }],
+  }).select('roundNumber title description status releaseDateTime deadline').sort({ roundNumber: 1 }).lean();
 
   if (!track) return response.json({ user, tracks, track: null, progress: null, currentTask: null, upcomingRounds: rounds });
 

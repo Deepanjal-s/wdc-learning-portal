@@ -9,7 +9,7 @@ const contentModels = {
   tracks: { model: Track, fields: ['slug', 'title', 'description', 'isActive', 'weeks'] },
   resources: { model: Resource, fields: ['slug', 'title', 'description', 'url', 'type', 'trackId', 'weekKey', 'topicKey', 'difficulty', 'estimatedMinutes', 'isPublished'] },
   tasks: { model: Task, fields: ['slug', 'title', 'description', 'instructions', 'trackId', 'weekKey', 'roundId', 'difficulty', 'estimatedMinutes', 'deadline', 'referenceImageUrl', 'submissionType', 'evaluationCriteria', 'isPublished'] },
-  rounds: { model: RecruitmentRound, fields: ['roundNumber', 'title', 'description', 'trackIds', 'requirements', 'resourceIds', 'taskIds', 'deadline', 'submissionInstructions', 'evaluationCriteria', 'status'] },
+  rounds: { model: RecruitmentRound, fields: ['roundNumber', 'title', 'description', 'trackIds', 'requirements', 'resourceIds', 'taskIds', 'releaseDateTime', 'deadline', 'submissionInstructions', 'evaluationCriteria', 'status'] },
 };
 
 function modelFor(type) {

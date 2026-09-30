@@ -87,7 +87,11 @@ export async function getTask(request, response) {
 }
 
 export async function listRecruitmentRounds(_request, response) {
-  const rounds = await RecruitmentRound.find({ status: { $ne: 'draft' } })
+  const now = new Date();
+  const rounds = await RecruitmentRound.find({
+    status: { $ne: 'draft' },
+    $or: [{ releaseDateTime: null }, { releaseDateTime: { $lte: now } }],
+  })
     .populate('trackIds', 'slug title')
     .populate({ path: 'resourceIds', match: { isPublished: true }, select: 'slug title description url type weekKey' })
     .populate({ path: 'taskIds', match: { isPublished: true }, select: 'slug title description instructions difficulty estimatedMinutes deadline referenceImageUrl submissionType evaluationCriteria' })
@@ -96,7 +100,12 @@ export async function listRecruitmentRounds(_request, response) {
 }
 
 export async function getRecruitmentRound(request, response) {
-  const round = await RecruitmentRound.findOne({ roundNumber: Number(request.params.roundNumber), status: { $ne: 'draft' } })
+  const now = new Date();
+  const round = await RecruitmentRound.findOne({
+    roundNumber: Number(request.params.roundNumber),
+    status: { $ne: 'draft' },
+    $or: [{ releaseDateTime: null }, { releaseDateTime: { $lte: now } }],
+  })
     .populate('trackIds', 'slug title')
     .populate({ path: 'resourceIds', match: { isPublished: true }, select: 'slug title description url type weekKey' })
     .populate({ path: 'taskIds', match: { isPublished: true }, select: 'slug title description instructions difficulty estimatedMinutes deadline referenceImageUrl submissionType evaluationCriteria' });

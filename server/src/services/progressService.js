@@ -62,3 +62,15 @@ export function buildProgressSummary(track, tasks, progress, resources = []) {
     steps: orderedSteps,
   };
 }
+
+export function isWeekUnlocked(track, summary, weekKey) {
+  const weekIndex = track.weeks.findIndex((week) => week.weekKey === weekKey);
+  if (weekIndex < 0) return false;
+  if (summary?.currentWeek === null) return true;
+
+  const currentWeekIndex = summary?.currentWeek
+    ? track.weeks.findIndex((week) => week.weekKey === summary.currentWeek.weekKey)
+    : -1;
+
+  return weekIndex <= currentWeekIndex;
+}
