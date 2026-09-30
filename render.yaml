@@ -6,9 +6,9 @@ services:
     plan: free
     rootDir: server
     buildCommand: npm ci
+    preDeployCommand: npm run db:indexes && npm run seed
     startCommand: npm start
     healthCheckPath: /api/health/ready
-    initialDeployHook: npm run db:indexes && npm run seed
     envVars:
       - key: NODE_ENV
         value: production
