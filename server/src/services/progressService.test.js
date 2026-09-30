@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildProgressSummary, isWeekUnlocked } from './progressService.js';
+import { buildProgressSummary, isValidFigmaUrl, isWeekUnlocked } from './progressService.js';
 
 const track = {
   _id: 'track-1',
@@ -77,4 +77,27 @@ test('locks future weeks until the previous week is fully completed', () => {
   });
 
   assert.equal(isWeekUnlocked(track, nextSummary, 'week-2'), true);
+});
+
+test('accepts valid HTTPS Figma share links only', () => {
+  assert.equal(isValidFigmaUrl('https://www.figma.com/design/abc123/example'), true);
+  assert.equal(isValidFigmaUrl('https://figma.com/proto/abc123/example'), true);
+  assert.equal(isValidFigmaUrl(''), false);
+  assert.equal(isValidFigmaUrl('https://example.com/design'), false);
+  assert.equal(isValidFigmaUrl('http://www.figma.com/design/abc123'), false);
+  assert.equal(isValidFigmaUrl('https://figma.com'), false);
+});
+
+test('includes the student task submission URL in the progress summary', () => {
+  const summary = buildProgressSummary(track, tasks, {
+    completedTopicKeys: [],
+    completedResourceIds: [],
+    completedTaskIds: [],
+    taskSubmissions: [{ taskId: 'task-1', figmaUrl: 'https://www.figma.com/design/abc123/example' }],
+  });
+
+  assert.deepEqual(summary.taskSubmissions, [{
+    taskId: 'task-1',
+    figmaUrl: 'https://www.figma.com/design/abc123/example',
+  }]);
 });

@@ -213,20 +213,50 @@ function TaskDetailPage() {
   const { taskId } = useParams();
   const { data, loading, error } = useApiData(`/tasks/${taskId}`, [taskId]);
   const [progress, setProgress] = useState(null);
+  const [figmaUrl, setFigmaUrl] = useState('');
   const [feedback, setFeedback] = useState('');
   const [busy, setBusy] = useState(false);
-  useEffect(() => { apiRequest('/student/progress').then((result) => setProgress(result.progress)).catch(() => {}); }, [taskId]);
+  useEffect(() => {
+    let active = true;
+    apiRequest('/student/progress').then((result) => {
+      if (!active) return;
+      setProgress(result.progress);
+      const submitted = result.progress.taskSubmissions?.find((item) => String(item.taskId) === String(taskId));
+      setFigmaUrl(submitted?.figmaUrl || '');
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [taskId]);
   if (loading) return <LoadingBlock />;
   if (error) return <ApiProblem error={error} />;
   const task = data.task;
   const completed = progress?.completedTaskIds?.includes(String(task._id)) || false;
+  const requiresFigmaLink = Boolean(task.weekKey && !task.roundId);
+  const submission = progress?.taskSubmissions?.find((item) => String(item.taskId) === String(task._id));
+  async function submitFigmaLink(event) {
+    event.preventDefault();
+    setFeedback('');
+    let parsedUrl;
+    try { parsedUrl = new URL(figmaUrl.trim()); } catch { setFeedback('Please enter a valid Figma link.'); return; }
+    const hostname = parsedUrl.hostname.toLowerCase();
+    if (parsedUrl.protocol !== 'https:' || !(hostname === 'figma.com' || hostname.endsWith('.figma.com')) || parsedUrl.pathname.length <= 1) {
+      setFeedback('Please enter a valid Figma link.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await apiRequest('/student/progress/complete', { method: 'POST', body: JSON.stringify({ type: 'task', id: String(task._id), completed, figmaUrl: figmaUrl.trim(), submitOnly: true }) });
+      setProgress(result.progress);
+      setFeedback('Figma link submitted successfully.');
+    } catch (requestError) { setFeedback(requestError.message); }
+    finally { setBusy(false); }
+  }
   async function toggleComplete() {
     setBusy(true); setFeedback('');
     try { const result = await apiRequest('/student/progress/complete', { method: 'POST', body: JSON.stringify({ type: 'task', id: String(task._id), completed: !completed }) }); setProgress(result.progress); setFeedback(!completed ? 'Task marked complete. Nice work!' : 'Task completion removed.'); }
     catch (requestError) { setFeedback(requestError.message); }
     finally { setBusy(false); }
   }
-  return <><Link to="/tasks" className="text-sm font-semibold text-forest hover:underline">← All tasks</Link><div className="mt-5 grid gap-5 lg:grid-cols-[1fr_320px]"><article className="rounded-3xl border border-line bg-white p-6 shadow-card sm:p-9"><div className="flex flex-wrap items-center gap-2"><Pill>{task.weekKey?.replace('-', ' ') || 'Recruitment'}</Pill><span className="text-xs capitalize text-muted">{task.difficulty}{task.estimatedMinutes ? ` · ${task.estimatedMinutes} minutes` : ''}</span></div><h1 className="mt-4 text-3xl font-semibold tracking-tight">{task.title}</h1><p className="mt-3 text-base leading-7 text-muted">{task.description}</p><div className="mt-8 border-t border-line pt-6"><h2 className="text-lg font-semibold">Your brief</h2><p className="mt-3 whitespace-pre-line text-sm leading-7 text-muted">{task.instructions}</p></div>{task.referenceImageUrl && <div className="mt-7"><h2 className="text-lg font-semibold">Reference</h2><a className="mt-2 inline-flex text-sm font-semibold text-forest hover:underline" href={task.referenceImageUrl} target="_blank" rel="noreferrer">Open reference image ↗</a></div>}</article><aside className="h-fit rounded-3xl border border-line bg-white p-6"><Eyebrow>What to check</Eyebrow><ul className="mt-4 space-y-3">{task.evaluationCriteria.map((criterion) => <li key={criterion} className="flex gap-2 text-sm leading-6 text-muted"><span className="text-forest">✓</span>{criterion}</li>)}</ul><div className="mt-6 border-t border-line pt-5"><button disabled={busy} onClick={toggleComplete} className={`w-full rounded-xl px-4 py-3 text-sm font-semibold ${completed ? 'border border-line text-muted hover:bg-canvas' : 'bg-forest text-white hover:bg-[#10563f]'} disabled:opacity-60`}>{busy ? 'Saving…' : completed ? 'Mark as not complete' : 'Mark task complete'}</button>{feedback && <p role="status" className="mt-3 text-sm text-muted">{feedback}</p>}</div></aside></div></>;
+  return <><Link to="/tasks" className="text-sm font-semibold text-forest hover:underline">← All tasks</Link><div className="mt-5 grid gap-5 lg:grid-cols-[1fr_320px]"><article className="rounded-3xl border border-line bg-white p-6 shadow-card sm:p-9"><div className="flex flex-wrap items-center gap-2"><Pill>{task.weekKey?.replace('-', ' ') || 'Recruitment'}</Pill><span className="text-xs capitalize text-muted">{task.difficulty}{task.estimatedMinutes ? ` · ${task.estimatedMinutes} minutes` : ''}</span></div><h1 className="mt-4 text-3xl font-semibold tracking-tight">{task.title}</h1><p className="mt-3 text-base leading-7 text-muted">{task.description}</p><div className="mt-8 border-t border-line pt-6"><h2 className="text-lg font-semibold">Your brief</h2><p className="mt-3 whitespace-pre-line text-sm leading-7 text-muted">{task.instructions}</p></div>{task.referenceImageUrl && <div className="mt-7"><h2 className="text-lg font-semibold">Reference</h2><a className="mt-2 inline-flex text-sm font-semibold text-forest hover:underline" href={task.referenceImageUrl} target="_blank" rel="noreferrer">Open reference image ↗</a></div>}</article><aside className="h-fit rounded-3xl border border-line bg-white p-6"><Eyebrow>What to check</Eyebrow><ul className="mt-4 space-y-3">{task.evaluationCriteria.map((criterion) => <li key={criterion} className="flex gap-2 text-sm leading-6 text-muted"><span className="text-forest">✓</span>{criterion}</li>)}</ul>{requiresFigmaLink && <form onSubmit={submitFigmaLink} className="mt-6 border-t border-line pt-5"><label className="block text-sm font-semibold" htmlFor="figma-design-link">Figma Design Link<input id="figma-design-link" className="mt-2 w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-forest focus:ring-2 focus:ring-forest/10" type="text" inputMode="url" autoComplete="url" value={figmaUrl} onChange={(event) => setFigmaUrl(event.target.value)} placeholder="https://www.figma.com/…" /></label><p className="mt-2 text-xs leading-5 text-muted">Make sure your Figma file is accessible through the submitted link (Anyone with the link → Can view).</p>{submission?.figmaUrl && <p className="mt-3 text-xs text-muted">Submitted: <a className="font-semibold text-forest underline" href={submission.figmaUrl} target="_blank" rel="noreferrer">Open submitted Figma link ↗</a></p>}<button disabled={busy} className="mt-4 w-full rounded-xl border border-line px-4 py-3 text-sm font-semibold text-forest hover:bg-canvas disabled:opacity-60">{busy ? 'Submitting…' : submission ? 'Update Figma Link' : 'Submit Figma Link'}</button></form>}<div className={`${requiresFigmaLink ? 'mt-5' : 'mt-6'} border-t border-line pt-5`}><button disabled={busy || (requiresFigmaLink && !submission?.figmaUrl)} onClick={toggleComplete} className={`w-full rounded-xl px-4 py-3 text-sm font-semibold ${completed ? 'border border-line text-muted hover:bg-canvas' : 'bg-forest text-white hover:bg-[#10563f]'} disabled:cursor-not-allowed disabled:opacity-60`}>{busy ? 'Saving…' : completed ? 'Mark as not complete' : requiresFigmaLink ? 'Submit & Complete Task' : 'Mark task complete'}</button>{feedback && <p role="status" className="mt-3 text-sm text-muted">{feedback}</p>}</div></aside></div></>;
 }
 
 function RecruitmentPage() {

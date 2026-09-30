@@ -7,6 +7,10 @@ const progressSchema = new mongoose.Schema(
     completedTopicKeys: { type: [String], default: [] },
     completedResourceIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Resource' }],
     completedTaskIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Task' }],
+    taskSubmissions: [{
+      taskId: { type: mongoose.Schema.Types.ObjectId, ref: 'Task', required: true },
+      figmaUrl: { type: String, required: true, trim: true, maxlength: 2048 },
+    }],
   },
   { timestamps: true },
 );

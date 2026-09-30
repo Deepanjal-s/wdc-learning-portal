@@ -2,7 +2,7 @@ import Progress from '../models/Progress.js';
 import Resource from '../models/Resource.js';
 import Task from '../models/Task.js';
 import Track from '../models/Track.js';
-import { buildProgressSummary, isWeekUnlocked } from '../services/progressService.js';
+import { buildProgressSummary, isValidFigmaUrl, isWeekUnlocked } from '../services/progressService.js';
 import HttpError from '../utils/HttpError.js';
 
 async function getSelectedTrack(user) {
@@ -31,6 +31,7 @@ function assertWeekUnlocked(track, summary, weekKey) {
 export async function completeItem(request, response) {
   const track = await getSelectedTrack(request.user);
   const { type, id, completed = true } = request.body;
+  const { figmaUrl, submitOnly = false } = request.body;
   if (!['topic', 'resource', 'task'].includes(type) || typeof id !== 'string' || id.length > 120) {
     throw new HttpError(400, 'Provide a valid completion type and item id.');
   }
@@ -56,10 +57,58 @@ export async function completeItem(request, response) {
     assertWeekUnlocked(track, summary, resource.weekKey);
     update = completed ? { $addToSet: { completedResourceIds: resource._id } } : { $pull: { completedResourceIds: resource._id } };
   } else {
-    const task = await Task.findOne({ _id: id, trackId: track._id, isPublished: true }).select('_id weekKey');
+    const task = await Task.findOne({ _id: id, trackId: track._id, isPublished: true }).select('_id weekKey roundId');
     if (!task) throw new HttpError(404, 'Task was not found in your selected track.');
     assertWeekUnlocked(track, summary, task.weekKey);
-    update = completed ? { $addToSet: { completedTaskIds: task._id } } : { $pull: { completedTaskIds: task._id } };
+
+    const isWeeklyTask = Boolean(task.weekKey && !task.roundId && track.weeks.some((week) => week.weekKey === task.weekKey));
+    const existingSubmission = (progress?.taskSubmissions ?? []).find((submission) => String(submission.taskId) === String(task._id));
+
+    if (submitOnly) {
+      if (!isWeeklyTask) throw new HttpError(400, 'Figma links are only required for weekly learning tasks.');
+      if (!isValidFigmaUrl(figmaUrl)) throw new HttpError(400, 'Please enter a valid Figma link.');
+
+      const taskSubmissions = [...(progress?.taskSubmissions ?? [])];
+      const submissionIndex = taskSubmissions.findIndex((submission) => String(submission.taskId) === String(task._id));
+      const submission = { taskId: task._id, figmaUrl: figmaUrl.trim() };
+      if (submissionIndex >= 0) taskSubmissions[submissionIndex] = submission;
+      else taskSubmissions.push(submission);
+
+      await Progress.findOneAndUpdate(
+        { userId: request.user._id, trackId: track._id },
+        { $set: { taskSubmissions }, $setOnInsert: { userId: request.user._id, trackId: track._id } },
+        { upsert: true, returnDocument: 'after', runValidators: true, setDefaultsOnInsert: true },
+      );
+      return getProgress(request, response);
+    }
+
+    if (isWeeklyTask && completed) {
+      if (figmaUrl !== undefined && !isValidFigmaUrl(figmaUrl)) {
+        throw new HttpError(400, 'Please enter a valid Figma link.');
+      }
+      const submittedUrl = typeof figmaUrl === 'string' ? figmaUrl.trim() : existingSubmission?.figmaUrl;
+      if (!isValidFigmaUrl(submittedUrl)) {
+        throw new HttpError(400, 'Submit a valid Figma link before completing this task.');
+      }
+
+      if (typeof figmaUrl === 'string') {
+        const taskSubmissions = [...(progress?.taskSubmissions ?? [])];
+        const submissionIndex = taskSubmissions.findIndex((submission) => String(submission.taskId) === String(task._id));
+        const submission = { taskId: task._id, figmaUrl: submittedUrl };
+        if (submissionIndex >= 0) taskSubmissions[submissionIndex] = submission;
+        else taskSubmissions.push(submission);
+        update = {
+          $addToSet: { completedTaskIds: task._id },
+          $set: { taskSubmissions },
+        };
+      } else {
+        update = { $addToSet: { completedTaskIds: task._id } };
+      }
+    } else {
+      update = completed
+        ? { $addToSet: { completedTaskIds: task._id } }
+        : { $pull: { completedTaskIds: task._id } };
+    }
   }
 
   await Progress.findOneAndUpdate(

@@ -2,6 +2,10 @@ export function buildProgressSummary(track, tasks, progress, resources = []) {
   const completedTopicKeys = new Set(progress?.completedTopicKeys ?? []);
   const completedResourceIds = new Set((progress?.completedResourceIds ?? []).map((id) => String(id)));
   const completedTaskIds = new Set((progress?.completedTaskIds ?? []).map((id) => String(id)));
+  const taskSubmissions = (progress?.taskSubmissions ?? []).map((submission) => ({
+    taskId: String(submission.taskId),
+    figmaUrl: submission.figmaUrl,
+  }));
   const orderedSteps = [];
 
   for (const week of track.weeks) {
@@ -59,8 +63,23 @@ export function buildProgressSummary(track, tasks, progress, resources = []) {
     completedTopicKeys: [...completedTopicKeys],
     completedResourceIds: [...completedResourceIds],
     completedTaskIds: [...completedTaskIds],
+    taskSubmissions,
     steps: orderedSteps,
   };
+}
+
+export function isValidFigmaUrl(value) {
+  if (typeof value !== 'string' || value.trim().length === 0 || value.length > 2048) return false;
+
+  try {
+    const url = new URL(value.trim());
+    const hostname = url.hostname.toLowerCase();
+    return url.protocol === 'https:'
+      && (hostname === 'figma.com' || hostname.endsWith('.figma.com'))
+      && url.pathname.length > 1;
+  } catch {
+    return false;
+  }
 }
 
 export function isWeekUnlocked(track, summary, weekKey) {
