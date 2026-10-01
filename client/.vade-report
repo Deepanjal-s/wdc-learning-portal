@@ -1,47 +1,54 @@
-## Vercel Web Analytics Installation
+# Vercel Speed Insights Implementation
 
-Successfully installed and configured Vercel Web Analytics for this React + Vite project.
+## Summary
+Successfully installed and configured Vercel Speed Insights for the WDC Learning Portal client application.
 
-### Changes Made
+## Changes Made
 
-**Package Installation:**
-- Installed `@vercel/analytics` v2.0.1 using npm
+### 1. Package Installation
+- Installed `@vercel/speed-insights` version 2.0.0 using npm
 - Package added to dependencies in `package.json`
-- `package-lock.json` updated with new dependencies
+- Updated `package-lock.json` with new dependency tree
 
-**Code Integration:**
-- Modified `src/App.jsx`:
-  - Added import: `import { Analytics } from '@vercel/analytics/react';`
-  - Added `<Analytics />` component inside the main App component's AuthProvider wrapper
-  - Analytics component is now rendered globally across all application routes
+### 2. Component Integration
+Modified `client/src/App.jsx`:
+- Added import: `import { SpeedInsights } from '@vercel/speed-insights/react';`
+- Added `<SpeedInsights />` component next to the existing `<Analytics />` component in the main App export
+- Placement follows the official Vercel documentation for React applications
 
-### Implementation Details
+### 3. Files Modified
+- `client/package.json` - Added @vercel/speed-insights dependency
+- `client/package-lock.json` - Updated with new package and dependencies
+- `client/src/App.jsx` - Added SpeedInsights import and component
 
-Following the official Vercel documentation for React/Vite projects, the Analytics component was added to the root App component. This ensures analytics tracking is enabled across all pages including:
-- Authenticated routes (dashboard, roadmap, resources, tasks, recruitment, profile)
-- Public routes (login, register)
-- 404 page
+## Implementation Details
 
-The Analytics component is placed at the root level within the AuthProvider, ensuring it loads once and tracks all route changes throughout the application lifecycle.
+The SpeedInsights component was placed at the root level of the application, inside the AuthProvider wrapper alongside the existing Analytics component. This ensures that Speed Insights tracking is active across all pages of the application.
 
-### Verification
+The implementation follows the official Vercel Speed Insights quickstart documentation for React applications:
+- Component is imported from `@vercel/speed-insights/react`
+- No additional configuration required
+- Works seamlessly with the existing Vite + React setup
 
-- ✅ Build completed successfully without errors
-- ✅ All dependencies installed correctly
-- ✅ No linting configuration present in project
-- ✅ No test suite to run
+## Verification
 
-### Next Steps
+✓ Build completed successfully with no errors
+✓ All dependencies installed correctly
+✓ Build artifacts (dist/) properly excluded from git
+✓ Package lock file updated appropriately
+✓ Code follows existing patterns (matching Analytics component integration)
 
-To complete the setup:
-1. Enable Web Analytics in your Vercel dashboard (Analytics → Select project → Enable)
-2. Deploy the application to Vercel
-3. Visit your deployed site to verify analytics are being tracked
-4. Check the Network tab for requests to verify the analytics script is loading
-5. View analytics data in your Vercel dashboard after deployment
+## Next Steps
 
-### Files Modified
+After deploying to Vercel:
+1. Speed Insights will automatically start collecting performance data
+2. Metrics can be viewed in the Vercel dashboard under the Speed Insights section
+3. The tracking script will be injected at runtime when deployed on Vercel
+4. Consider upgrading to Speed Insights Plus for enhanced features if needed
 
-- `package.json` - Added @vercel/analytics dependency
-- `package-lock.json` - Updated with new package dependencies
-- `src/App.jsx` - Added Analytics import and component
+## Notes
+
+- This project is a Vite + React application
+- The codebase already had Vercel Analytics configured, making this integration straightforward
+- No linter or test suite was available to run, but the build completed successfully
+- The SpeedInsights component is lightweight and has no visible UI impact
