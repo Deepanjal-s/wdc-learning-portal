@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Analytics } from '@vercel/analytics/react';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { apiRequest } from './services/api.js';
 import { Link, NavLink, Navigate, Outlet, Route, Routes, useNavigate, useParams } from 'react-router-dom';
@@ -305,4 +306,4 @@ function AuthenticatedApp() {
   return <Routes><Route element={<ProtectedRoute />}><Route element={<SiteLayout />}><Route index element={<DashboardPage/>}/><Route path="roadmap" element={<RoadmapPage/>}/><Route path="resources" element={<ResourcesPage/>}/><Route path="tasks" element={<TasksPage/>}/><Route path="tasks/:taskId" element={<TaskDetailPage/>}/><Route path="recruitment" element={<RecruitmentPage/>}/><Route path="profile" element={<ProfilePage/>}/></Route></Route><Route path="/login" element={<AuthPage mode="login"/>}/><Route path="/register" element={<AuthPage mode="register"/>}/><Route path="*" element={<NotFoundPage/>}/></Routes>;
 }
 
-export default function App() { return <AuthProvider><AuthenticatedApp/></AuthProvider>; }
+export default function App() { return <AuthProvider><AuthenticatedApp/><Analytics /></AuthProvider>; }
