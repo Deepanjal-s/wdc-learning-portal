@@ -1,19 +1,12 @@
 import Progress from '../models/Progress.js';
 import Resource from '../models/Resource.js';
 import Task from '../models/Task.js';
-import Track from '../models/Track.js';
-import { buildProgressSummary, isValidFigmaUrl, isWeekUnlocked } from '../services/progressService.js';
+import { buildProgressSummary, isValidFigmaUrl, isValidHttpsUrl, isWeekUnlocked } from '../services/progressService.js';
+import { resolveUserTrack } from '../utils/userTracks.js';
 import HttpError from '../utils/HttpError.js';
 
-async function getSelectedTrack(user) {
-  if (!user.selectedTrackId) throw new HttpError(400, 'Choose a learning track in your profile first.');
-  const track = await Track.findOne({ _id: user.selectedTrackId, isActive: true });
-  if (!track) throw new HttpError(404, 'Your selected learning track is no longer available.');
-  return track;
-}
-
 export async function getProgress(request, response) {
-  const track = await getSelectedTrack(request.user);
+  const track = await resolveUserTrack(request.user, request.query.trackId);
   const [tasks, resources, progress] = await Promise.all([
     Task.find({ trackId: track._id, isPublished: true }).sort({ createdAt: 1 }).lean(),
     Resource.find({ trackId: track._id, isPublished: true }).sort({ weekKey: 1, title: 1 }).lean(),
@@ -29,9 +22,9 @@ function assertWeekUnlocked(track, summary, weekKey) {
 }
 
 export async function completeItem(request, response) {
-  const track = await getSelectedTrack(request.user);
+  const track = await resolveUserTrack(request.user, request.query.trackId || request.body.trackId);
   const { type, id, completed = true } = request.body;
-  const { figmaUrl, submitOnly = false } = request.body;
+  const { figmaUrl, submissionUrl, submitOnly = false } = request.body;
   if (!['topic', 'resource', 'task'].includes(type) || typeof id !== 'string' || id.length > 120) {
     throw new HttpError(400, 'Provide a valid completion type and item id.');
   }
@@ -57,49 +50,65 @@ export async function completeItem(request, response) {
     assertWeekUnlocked(track, summary, resource.weekKey);
     update = completed ? { $addToSet: { completedResourceIds: resource._id } } : { $pull: { completedResourceIds: resource._id } };
   } else {
-    const task = await Task.findOne({ _id: id, trackId: track._id, isPublished: true }).select('_id weekKey roundId');
+    const task = await Task.findOne({ _id: id, trackId: track._id, isPublished: true }).select('_id weekKey roundId submissionType');
     if (!task) throw new HttpError(404, 'Task was not found in your selected track.');
     assertWeekUnlocked(track, summary, task.weekKey);
 
-    const isWeeklyTask = Boolean(task.weekKey && !task.roundId && track.weeks.some((week) => week.weekKey === task.weekKey));
+    // The submission gate keys off the task's submissionType: 'design-link'
+    // requires a valid Figma URL, 'code-link' a valid https:// URL, and
+    // 'mark-complete' needs no link. UI/UX weekly tasks are seeded as
+    // 'mark-complete' (master behavior); Technical tasks use
+    // 'code-link' or 'mark-complete'.
+    const submissionType = task.submissionType || 'mark-complete';
+    const requiresFigmaLink = submissionType === 'design-link';
+    const requiresCodeLink = submissionType === 'code-link';
+    const requiresLink = requiresFigmaLink || requiresCodeLink;
     const existingSubmission = (progress?.taskSubmissions ?? []).find((submission) => String(submission.taskId) === String(task._id));
+    const existingUrl = existingSubmission?.submissionUrl || existingSubmission?.figmaUrl;
 
-    if (submitOnly) {
-      if (!isWeeklyTask) throw new HttpError(400, 'Figma links are only required for weekly learning tasks.');
-      if (!isValidFigmaUrl(figmaUrl)) throw new HttpError(400, 'Please enter a valid Figma link.');
+    const validateLink = (rawUrl) => (requiresFigmaLink ? isValidFigmaUrl(rawUrl) : isValidHttpsUrl(rawUrl));
+    const invalidLinkMessage = requiresFigmaLink
+      ? 'Please enter a valid Figma link.'
+      : 'Please enter a valid link starting with https://.';
 
+    const upsertSubmission = (url) => {
       const taskSubmissions = [...(progress?.taskSubmissions ?? [])];
       const submissionIndex = taskSubmissions.findIndex((submission) => String(submission.taskId) === String(task._id));
-      const submission = { taskId: task._id, figmaUrl: figmaUrl.trim() };
+      const submission = requiresFigmaLink
+        ? { taskId: task._id, figmaUrl: url }
+        : { taskId: task._id, submissionUrl: url };
       if (submissionIndex >= 0) taskSubmissions[submissionIndex] = submission;
       else taskSubmissions.push(submission);
+      return taskSubmissions;
+    };
+
+    if (submitOnly) {
+      if (!requiresLink) throw new HttpError(400, 'This task does not require a submission link.');
+      const rawUrl = requiresFigmaLink ? figmaUrl : submissionUrl;
+      if (!validateLink(rawUrl)) throw new HttpError(400, invalidLinkMessage);
 
       await Progress.findOneAndUpdate(
         { userId: request.user._id, trackId: track._id },
-        { $set: { taskSubmissions }, $setOnInsert: { userId: request.user._id, trackId: track._id } },
+        { $set: { taskSubmissions: upsertSubmission(rawUrl.trim()) }, $setOnInsert: { userId: request.user._id, trackId: track._id } },
         { upsert: true, returnDocument: 'after', runValidators: true, setDefaultsOnInsert: true },
       );
       return getProgress(request, response);
     }
 
-    if (isWeeklyTask && completed) {
-      if (figmaUrl !== undefined && !isValidFigmaUrl(figmaUrl)) {
-        throw new HttpError(400, 'Please enter a valid Figma link.');
+    if (requiresLink && completed) {
+      const rawUrl = requiresFigmaLink ? figmaUrl : submissionUrl;
+      if (rawUrl !== undefined && !validateLink(rawUrl)) {
+        throw new HttpError(400, invalidLinkMessage);
       }
-      const submittedUrl = typeof figmaUrl === 'string' ? figmaUrl.trim() : existingSubmission?.figmaUrl;
-      if (!isValidFigmaUrl(submittedUrl)) {
-        throw new HttpError(400, 'Submit a valid Figma link before completing this task.');
+      const submittedUrl = typeof rawUrl === 'string' ? rawUrl.trim() : existingUrl;
+      if (!validateLink(submittedUrl)) {
+        throw new HttpError(400, requiresFigmaLink ? 'Submit a valid Figma link before completing this task.' : 'Submit a valid link before completing this task.');
       }
 
-      if (typeof figmaUrl === 'string') {
-        const taskSubmissions = [...(progress?.taskSubmissions ?? [])];
-        const submissionIndex = taskSubmissions.findIndex((submission) => String(submission.taskId) === String(task._id));
-        const submission = { taskId: task._id, figmaUrl: submittedUrl };
-        if (submissionIndex >= 0) taskSubmissions[submissionIndex] = submission;
-        else taskSubmissions.push(submission);
+      if (typeof rawUrl === 'string') {
         update = {
           $addToSet: { completedTaskIds: task._id },
-          $set: { taskSubmissions },
+          $set: { taskSubmissions: upsertSubmission(submittedUrl) },
         };
       } else {
         update = { $addToSet: { completedTaskIds: task._id } };
