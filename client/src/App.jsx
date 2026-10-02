@@ -3,6 +3,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { AuthProvider, useAuth } from './context/AuthContext.jsx';
 import { apiRequest } from './services/api.js';
+import { AdminOverviewPage, AdminRoute, AdminStudentDetailPage, AdminStudentsPage } from './pages/Admin.jsx';
 import { Link, NavLink, Navigate, Outlet, Route, Routes, useNavigate, useParams } from 'react-router-dom';
 
 const navItems = [
@@ -44,6 +45,8 @@ function SiteLayout() {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const initials = user?.name?.split(/\s+/).map((part) => part[0]).slice(0, 2).join('').toUpperCase() || 'W';
+  // Coordinators see an Admin link; students never do.
+  const visibleNavItems = user?.role === 'admin' ? [...navItems, { label: 'Admin', to: '/admin' }] : navItems;
   async function handleLogout() {
     try { await logout(); } finally { navigate('/login', { replace: true }); }
   }
@@ -56,7 +59,7 @@ function SiteLayout() {
             <span><span className="block text-sm font-bold tracking-tight">WDC Learn</span><span className="block text-xs text-muted">NIT Sikkim</span></span>
           </Link>
           <nav className="hidden items-center gap-1 md:flex" aria-label="Main navigation">
-            {navItems.map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/'} className={({ isActive }) => `rounded-full px-3 py-2 text-sm font-medium ${isActive ? 'bg-mint text-forest' : 'text-muted hover:bg-canvas hover:text-ink'}`}>{item.label}</NavLink>)}
+            {visibleNavItems.map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/'} className={({ isActive }) => `rounded-full px-3 py-2 text-sm font-medium ${isActive ? 'bg-mint text-forest' : 'text-muted hover:bg-canvas hover:text-ink'}`}>{item.label}</NavLink>)}
           </nav>
           <div className="flex items-center gap-3">
             <TrackSwitcher />
@@ -65,7 +68,7 @@ function SiteLayout() {
           </div>
         </div>
         <nav className="flex gap-1 overflow-x-auto border-t border-line px-4 py-2 md:hidden" aria-label="Mobile navigation">
-          {navItems.map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/'} className={({ isActive }) => `shrink-0 rounded-full px-3 py-2 text-xs font-medium ${isActive ? 'bg-mint text-forest' : 'text-muted'}`}>{item.label}</NavLink>)}
+          {visibleNavItems.map((item) => <NavLink key={item.to} to={item.to} end={item.to === '/'} className={({ isActive }) => `shrink-0 rounded-full px-3 py-2 text-xs font-medium ${isActive ? 'bg-mint text-forest' : 'text-muted'}`}>{item.label}</NavLink>)}
           <button onClick={handleLogout} className="shrink-0 rounded-full px-3 py-2 text-xs font-medium text-muted">Log out</button>
         </nav>
       </header>
@@ -384,7 +387,7 @@ function TrackProviderHost({ children }) {
 }
 
 function AuthenticatedApp() {
-  return <TrackProviderHost><Routes><Route element={<ProtectedRoute />}><Route element={<SiteLayout />}><Route index element={<DashboardPage/>}/><Route path="roadmap" element={<RoadmapPage/>}/><Route path="resources" element={<ResourcesPage/>}/><Route path="tasks" element={<TasksPage/>}/><Route path="tasks/:taskId" element={<TaskDetailPage/>}/><Route path="recruitment" element={<RecruitmentPage/>}/><Route path="profile" element={<ProfilePage/>}/></Route></Route><Route path="/login" element={<AuthPage mode="login"/>}/><Route path="/register" element={<AuthPage mode="register"/>}/><Route path="*" element={<NotFoundPage/>}/></Routes></TrackProviderHost>;
+  return <TrackProviderHost><Routes><Route element={<ProtectedRoute />}><Route element={<SiteLayout />}><Route index element={<DashboardPage/>}/><Route path="roadmap" element={<RoadmapPage/>}/><Route path="resources" element={<ResourcesPage/>}/><Route path="tasks" element={<TasksPage/>}/><Route path="tasks/:taskId" element={<TaskDetailPage/>}/><Route path="recruitment" element={<RecruitmentPage/>}/><Route path="profile" element={<ProfilePage/>}/><Route path="admin" element={<AdminRoute><AdminOverviewPage/></AdminRoute>}/><Route path="admin/students" element={<AdminRoute><AdminStudentsPage/></AdminRoute>}/><Route path="admin/students/:studentId" element={<AdminRoute><AdminStudentDetailPage/></AdminRoute>}/></Route></Route><Route path="/login" element={<AuthPage mode="login"/>}/><Route path="/register" element={<AuthPage mode="register"/>}/><Route path="*" element={<NotFoundPage/>}/></Routes></TrackProviderHost>;
 }
 
 export default function App() { return <AuthProvider><AuthenticatedApp/><Analytics /><SpeedInsights /></AuthProvider>; }
