@@ -25,6 +25,9 @@ function publicUser(user) {
     branch: user.branch ?? '',
     year: user.year ?? null,
     selectedTrackId: user.selectedTrackId ? String(user.selectedTrackId) : null,
+    selectedTrackIds: Array.isArray(user.selectedTrackIds)
+      ? user.selectedTrackIds.map((id) => String(id))
+      : [],
     githubUrl: user.githubUrl ?? '',
     portfolioUrl: user.portfolioUrl ?? '',
     role: user.role,
@@ -44,7 +47,7 @@ export async function register(request, response) {
     throw new HttpError(503, 'Authentication is not configured. Set a JWT_SECRET of at least 32 characters.');
   }
 
-  const { name, email, password, branch, year } = request.body;
+  const { name, email, password, branch, year, tracks } = request.body;
   if (typeof name !== 'string' || name.trim().length < 2) {
     throw new HttpError(400, 'Name must contain at least 2 characters.');
   }
@@ -59,14 +62,28 @@ export async function register(request, response) {
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  const defaultTrack = await Track.findOne({ slug: 'ui-ux', isActive: true }).select('_id');
+
+  // Optional track selection at signup: an array of track slugs.
+  // Falls back to the UI/UX track so existing behavior is unchanged.
+  const requestedSlugs = Array.isArray(tracks) && tracks.length > 0 ? tracks : ['ui-ux'];
+  const normalizedSlugs = [...new Set(
+    requestedSlugs.map((slug) => String(slug).trim().toLowerCase()).filter(Boolean),
+  )];
+  if (normalizedSlugs.length === 0) throw new HttpError(400, 'Select at least one learning track.');
+  const activeTracks = await Track.find({ slug: { $in: normalizedSlugs }, isActive: true }).select('_id slug');
+  if (activeTracks.length !== normalizedSlugs.length) {
+    throw new HttpError(400, 'One or more selected learning tracks are not available.');
+  }
+  const orderedTrackIds = normalizedSlugs.map((slug) => activeTracks.find((track) => track.slug === slug)._id);
+
   const user = await User.create({
     name: name.trim(),
     email: email.trim().toLowerCase(),
     passwordHash,
     branch: typeof branch === 'string' ? branch.trim().slice(0, 80) : undefined,
     year: 2,
-    selectedTrackId: defaultTrack?._id ?? null,
+    selectedTrackId: orderedTrackIds[0],
+    selectedTrackIds: orderedTrackIds,
   });
 
   return response.status(201).json({ user: issueSession(response, user) });

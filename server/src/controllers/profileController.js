@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import Track from '../models/Track.js';
 import HttpError from '../utils/HttpError.js';
 
@@ -9,6 +10,9 @@ function publicUser(user) {
     branch: user.branch ?? '',
     year: user.year ?? null,
     selectedTrackId: user.selectedTrackId ? String(user.selectedTrackId) : null,
+    selectedTrackIds: Array.isArray(user.selectedTrackIds)
+      ? user.selectedTrackIds.map((id) => String(id))
+      : [],
     githubUrl: user.githubUrl ?? '',
     portfolioUrl: user.portfolioUrl ?? '',
     role: user.role,
@@ -20,8 +24,8 @@ export function getProfile(request, response) {
 }
 
 export async function updateProfile(request, response) {
-  const { name, branch, year, githubUrl, portfolioUrl, selectedTrackId } = request.body;
-  const allowedFields = ['name', 'branch', 'year', 'githubUrl', 'portfolioUrl', 'selectedTrackId'];
+  const { name, branch, year, githubUrl, portfolioUrl, selectedTrackId, selectedTrackIds } = request.body;
+  const allowedFields = ['name', 'branch', 'year', 'githubUrl', 'portfolioUrl', 'selectedTrackId', 'selectedTrackIds'];
   const updates = {};
 
   for (const field of allowedFields) {
@@ -33,9 +37,24 @@ export async function updateProfile(request, response) {
   if (year !== undefined && year !== null && (!Number.isInteger(Number(year)) || Number(year) !== 2)) {
     throw new HttpError(400, 'Only second-year students can use this portal.');
   }
-  if (selectedTrackId !== undefined) {
+  if (selectedTrackId !== undefined && selectedTrackIds === undefined) {
     const track = await Track.findOne({ _id: selectedTrackId, isActive: true }).select('_id');
     if (!track) throw new HttpError(404, 'Selected learning track was not found.');
+    updates.selectedTrackIds = [track._id];
+  }
+  if (selectedTrackIds !== undefined) {
+    if (!Array.isArray(selectedTrackIds) || selectedTrackIds.length === 0) {
+      throw new HttpError(400, 'Select at least one learning track.');
+    }
+    const ids = [...new Set(selectedTrackIds.map((id) => String(id)))];
+    if (!ids.every((id) => mongoose.isValidObjectId(id))) {
+      throw new HttpError(400, 'One or more learning track ids are invalid.');
+    }
+    const found = await Track.find({ _id: { $in: ids }, isActive: true }).select('_id');
+    if (found.length !== ids.length) throw new HttpError(404, 'One or more selected learning tracks were not found.');
+    const byId = new Map(found.map((track) => [String(track._id), track._id]));
+    updates.selectedTrackIds = ids.map((id) => byId.get(id));
+    updates.selectedTrackId = updates.selectedTrackIds[0];
   }
 
   if (typeof updates.name === 'string') updates.name = updates.name.trim();
