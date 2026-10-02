@@ -1,4 +1,5 @@
 import Track from '../models/Track.js';
+import { getAssignedTrackIds, isAssignedToTrack } from '../utils/trackAccess.js';
 import HttpError from '../utils/HttpError.js';
 
 function publicUser(user) {
@@ -9,6 +10,7 @@ function publicUser(user) {
     branch: user.branch ?? '',
     year: user.year ?? null,
     selectedTrackId: user.selectedTrackId ? String(user.selectedTrackId) : null,
+    selectedTrackIds: getAssignedTrackIds(user),
     githubUrl: user.githubUrl ?? '',
     portfolioUrl: user.portfolioUrl ?? '',
     role: user.role,
@@ -36,6 +38,16 @@ export async function updateProfile(request, response) {
   if (selectedTrackId !== undefined) {
     const track = await Track.findOne({ _id: selectedTrackId, isActive: true }).select('_id');
     if (!track) throw new HttpError(404, 'Selected learning track was not found.');
+    // Students may only switch to a track they are assigned to; they cannot
+    // grant themselves access to another track by editing the request.
+    const assigned = getAssignedTrackIds(request.user);
+    if (assigned.length > 0 && !isAssignedToTrack(request.user, track._id)) {
+      throw new HttpError(403, 'You are not assigned to that learning track.');
+    }
+    if (assigned.length === 0) {
+      // First-time assignment (e.g. legacy users before migration).
+      updates.selectedTrackIds = [track._id];
+    }
   }
 
   if (typeof updates.name === 'string') updates.name = updates.name.trim();

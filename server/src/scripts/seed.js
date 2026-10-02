@@ -6,6 +6,7 @@ import Resource from '../models/Resource.js';
 import Task from '../models/Task.js';
 import Track from '../models/Track.js';
 import { recruitmentRoundSeed, resourceSeeds, taskSeeds, uiuxTrackSeed } from '../seed/uiuxSeed.js';
+import { technicalTrackSeed } from '../seed/technicalSeed.js';
 
 async function seed() {
   const connected = await connectDatabase();
@@ -51,7 +52,18 @@ async function seed() {
 
   if (roundTask) await Task.updateOne({ _id: roundTask._id }, { $set: { roundId: round._id } });
 
+  // Technical track: structure-only seed (weeks + placeholder topics). The
+  // UI/UX track seeding above is intentionally untouched; this upsert only
+  // touches the 'technical' slug, so re-running the seed never modifies the
+  // UI/UX track, its resources, tasks, or recruitment round.
+  const technicalTrack = await Track.findOneAndUpdate(
+    { slug: technicalTrackSeed.slug },
+    { $set: technicalTrackSeed },
+    { upsert: true, returnDocument: 'after', runValidators: true, setDefaultsOnInsert: true },
+  );
+
   console.log(`Seeded ${track.title}: ${track.weeks.length} weeks, ${resources.length} resources, ${tasks.length} tasks, and Round ${round.roundNumber}.`);
+  console.log(`Seeded ${technicalTrack.title}: ${technicalTrack.weeks.length} weeks (placeholder content).`);
 }
 
 seed()

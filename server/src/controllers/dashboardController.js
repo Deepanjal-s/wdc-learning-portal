@@ -4,9 +4,10 @@ import Resource from '../models/Resource.js';
 import Task from '../models/Task.js';
 import Track from '../models/Track.js';
 import { buildProgressSummary } from '../services/progressService.js';
+import { getAssignedTrackIds } from '../utils/trackAccess.js';
 
 function serializeUser(user) {
-  return { id: String(user._id), name: user.name, email: user.email, branch: user.branch ?? '', year: user.year ?? null, selectedTrackId: user.selectedTrackId ? String(user.selectedTrackId) : null };
+  return { id: String(user._id), name: user.name, email: user.email, branch: user.branch ?? '', year: user.year ?? null, selectedTrackId: user.selectedTrackId ? String(user.selectedTrackId) : null, selectedTrackIds: getAssignedTrackIds(user) };
 }
 
 export async function getDashboard(request, response) {

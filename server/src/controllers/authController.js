@@ -2,6 +2,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import Track from '../models/Track.js';
+import { getAssignedTrackIds } from '../utils/trackAccess.js';
 import HttpError from '../utils/HttpError.js';
 
 const COOKIE_NAME = 'wdc_session';
@@ -25,6 +26,7 @@ function publicUser(user) {
     branch: user.branch ?? '',
     year: user.year ?? null,
     selectedTrackId: user.selectedTrackId ? String(user.selectedTrackId) : null,
+    selectedTrackIds: getAssignedTrackIds(user),
     githubUrl: user.githubUrl ?? '',
     portfolioUrl: user.portfolioUrl ?? '',
     role: user.role,
@@ -59,14 +61,26 @@ export async function register(request, response) {
   }
 
   const passwordHash = await bcrypt.hash(password, 12);
-  const defaultTrack = await Track.findOne({ slug: 'ui-ux', isActive: true }).select('_id');
+
+  // Track choice at registration: 'ui-ux' | 'technical' | 'both'.
+  // Defaults to UI/UX so older clients keep working unchanged.
+  const trackChoice = typeof request.body.trackChoice === 'string' ? request.body.trackChoice : 'ui-ux';
+  const choiceSlugs = { 'ui-ux': ['ui-ux'], technical: ['technical'], both: ['ui-ux', 'technical'] }[trackChoice];
+  if (!choiceSlugs) throw new HttpError(400, 'Choose a valid learning track option.');
+  const assignedTracks = await Track.find({ slug: { $in: choiceSlugs }, isActive: true }).select('_id slug').lean();
+  if (assignedTracks.length !== choiceSlugs.length) {
+    throw new HttpError(400, 'The selected learning track is not available right now.');
+  }
+  const orderedTracks = choiceSlugs.map((slug) => assignedTracks.find((track) => track.slug === slug));
+
   const user = await User.create({
     name: name.trim(),
     email: email.trim().toLowerCase(),
     passwordHash,
     branch: typeof branch === 'string' ? branch.trim().slice(0, 80) : undefined,
     year: 2,
-    selectedTrackId: defaultTrack?._id ?? null,
+    selectedTrackIds: orderedTracks.map((track) => track._id),
+    selectedTrackId: orderedTracks[0]._id,
   });
 
   return response.status(201).json({ user: issueSession(response, user) });

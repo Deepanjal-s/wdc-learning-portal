@@ -12,7 +12,8 @@
     "seed": "node src/scripts/seed.js",
     "db:indexes": "node src/scripts/createIndexes.js",
     "promote-admin": "node src/scripts/promoteAdmin.js",
-    "test": "node --test"
+    "test": "node --test",
+    "migrate:track-assignments": "node src/scripts/migrateTrackAssignments.js"
   },
   "dependencies": {
     "bcryptjs": "^3.0.3",
