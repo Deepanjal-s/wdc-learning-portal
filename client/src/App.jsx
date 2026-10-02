@@ -199,17 +199,74 @@ function Eyebrow({ children }) { return <p className="text-xs font-semibold uppe
 function PageHeading({ eyebrow, title, description }) { return <header className="mb-7"><Eyebrow>{eyebrow}</Eyebrow><h1 className="mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">{title}</h1>{description && <p className="mt-2 max-w-2xl leading-7 text-muted">{description}</p>}</header>; }
 function Pill({ children }) { return <span className="inline-flex rounded-full bg-mint px-3 py-1 text-xs font-semibold capitalize text-forest">{children}</span>; }
 
+// Shows every enrolled track with a switcher, plus an "Add" button for each
+// track the student is not enrolled in yet. Adding a track calls the backend
+// and refreshes in place — no page reload, no progress touched.
+function YourTracks({ tracks, trackProgress, onTracksChanged }) {
+  const { trackIds, currentTrackId, selectTrack } = useTrack();
+  const { updateUser } = useAuth();
+  const [adding, setAdding] = useState('');
+  const [feedback, setFeedback] = useState('');
+  const enrolledIds = (trackIds || []).map(String);
+  const enrolled = (trackProgress || []).map((item) => item.track);
+  const available = (tracks || []).filter((track) => !enrolledIds.includes(String(track._id)));
+  const progressFor = (track) => (trackProgress || []).find((item) => String(item.track.id) === String(track.id))?.progress;
+  async function addTrackBySlug(slug) {
+    setAdding(slug); setFeedback('');
+    try {
+      const result = await apiRequest('/student/profile/tracks', { method: 'POST', body: JSON.stringify({ slug }) });
+      updateUser(result.user);
+      setFeedback(`${result.addedTrack.title} added to your learning tracks.`);
+      onTracksChanged();
+    } catch (requestError) { setFeedback(requestError.message); }
+    finally { setAdding(''); }
+  }
+  if (!enrolled.length && !available.length) return null;
+  return (
+    <section className="mt-6 rounded-3xl border border-line bg-white p-6 shadow-card sm:p-8">
+      <Eyebrow>Your tracks</Eyebrow>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2">
+        {enrolled.map((track) => {
+          const id = String(track.id);
+          const isCurrent = currentTrackId === id;
+          const progress = progressFor(track);
+          return (
+            <div key={id} className="flex items-center justify-between gap-3 rounded-2xl border border-line bg-canvas/60 p-4">
+              <div>
+                <p className="text-sm font-semibold">{track.title}{isCurrent && <span className="ml-2 rounded-full bg-mint px-2 py-0.5 text-[11px] font-semibold text-forest">Current</span>}</p>
+                <p className="mt-1 text-xs text-muted">{progress ? `${progress.percentage}% complete · ${progress.completedCount} of ${progress.totalCount} steps` : 'Not started yet'}</p>
+              </div>
+              {!isCurrent && <button type="button" onClick={() => selectTrack(id)} className="shrink-0 rounded-full border border-line bg-white px-4 py-2 text-xs font-semibold hover:border-forest/40 hover:text-forest">Switch</button>}
+            </div>
+          );
+        })}
+        {available.map((track) => (
+          <div key={String(track._id)} className="flex items-center justify-between gap-3 rounded-2xl border border-dashed border-line p-4">
+            <div>
+              <p className="text-sm font-semibold">{track.title}</p>
+              <p className="mt-1 text-xs text-muted">Not enrolled yet</p>
+            </div>
+            <button type="button" disabled={adding === track.slug} onClick={() => addTrackBySlug(track.slug)} className="shrink-0 rounded-full bg-forest px-4 py-2 text-xs font-semibold text-white disabled:opacity-60">{adding === track.slug ? 'Adding…' : `Add ${track.title}`}</button>
+          </div>
+        ))}
+      </div>
+      {feedback && <p role="status" className="mt-3 text-sm text-muted">{feedback}</p>}
+    </section>
+  );
+}
+
 function DashboardPage() {
   const { currentTrackId } = useTrack();
-  const { data, loading, error } = useApiData(currentTrackId ? `/student/dashboard?trackId=${currentTrackId}` : null, [currentTrackId]);
+  const { data, loading, error, refresh } = useApiData(currentTrackId ? `/student/dashboard?trackId=${currentTrackId}` : null, [currentTrackId]);
   if (loading) return <LoadingBlock />;
   if (error) return <ApiProblem error={error} />;
   if (!data) return <section className="rounded-3xl border border-line bg-white p-8 text-sm text-muted">Choose a learning track in your profile to get started.</section>;
-  const { user, track, progress, currentGoals = [], currentTask, upcomingRounds = [] } = data;
+  const { user, track, progress, currentGoals = [], currentTask, upcomingRounds = [], tracks = [], trackProgress = [] } = data;
   const taskDone = currentTask && progress?.completedTaskIds?.includes(String(currentTask._id));
   return <>
     <section className="relative isolate overflow-hidden rounded-3xl bg-ink px-6 py-9 text-white shadow-card sm:px-10 sm:py-12"><div className="absolute -right-10 -top-20 -z-10 h-64 w-64 rounded-full border border-white/10" /><p className="text-sm font-medium text-citrus">WEB DEVELOPMENT CELL · NIT SIKKIM</p><h1 className="mt-5 max-w-2xl text-3xl font-semibold tracking-tight sm:text-5xl">Welcome, {user.name.split(' ')[0]}.</h1><p className="mt-3 max-w-xl leading-7 text-white/70">Small, steady practice adds up. Here’s your next step in the WDC learning path.</p>
     </section>
+    <YourTracks tracks={tracks} trackProgress={trackProgress} onTracksChanged={refresh} />
     {track && <>
       <section className="mt-6 grid gap-4 sm:grid-cols-3"><article className="rounded-2xl border border-line bg-white p-5"><Eyebrow>Selected track</Eyebrow><h2 className="mt-2 text-lg font-semibold">{track.title}</h2><p className="mt-1 text-sm text-muted">Your WDC preparation path</p></article><article className="rounded-2xl border border-line bg-white p-5"><div className="flex items-center justify-between"><Eyebrow>Overall progress</Eyebrow><strong className="text-lg">{progress?.percentage ?? 0}%</strong></div><div className="mt-3"><ProgressBar value={progress?.percentage} /></div><p className="mt-2 text-xs text-muted">{progress?.completedCount ?? 0} of {progress?.totalCount ?? 0} learning steps complete</p></article><article className="rounded-2xl border border-line bg-white p-5"><Eyebrow>Current week</Eyebrow><h2 className="mt-2 text-lg font-semibold">{progress?.currentWeek ? `Week ${progress.currentWeek.number}` : 'All caught up'}</h2><p className="mt-1 text-sm text-muted">{progress?.currentWeek?.title || 'You completed this roadmap.'}</p></article></section>
       <section className="mt-6 grid gap-5 lg:grid-cols-[1.25fr_0.75fr]"><article className="rounded-3xl border border-line bg-white p-6 shadow-card sm:p-8"><div className="flex items-center justify-between gap-4"><div><Eyebrow>Current learning goals</Eyebrow><h2 className="mt-2 text-xl font-semibold">{progress?.currentWeek?.title || 'Roadmap complete'}</h2></div><Link to="/roadmap" className="text-sm font-semibold text-forest">Open roadmap →</Link></div><div className="mt-5 space-y-3">{currentGoals.length ? currentGoals.slice(0, 4).map((goal) => <div key={goal.topicKey} className="flex items-center gap-3 rounded-xl bg-canvas/80 p-3"><span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs ${goal.completed ? 'bg-forest text-white' : 'border border-line bg-white text-muted'}`}>{goal.completed ? '✓' : '·'}</span><span className={`text-sm ${goal.completed ? 'text-muted line-through' : 'font-medium'}`}>{goal.title}</span></div>) : <p className="text-sm text-muted">No outstanding topics. Take a look at your next recommendation.</p>}</div></article>
@@ -376,7 +433,7 @@ function ProfilePage() {
     finally { setBusy(false); }
   }
   const inputClass = 'mt-2 w-full rounded-xl border border-line bg-white px-4 py-3 text-sm outline-none focus:border-forest focus:ring-2 focus:ring-forest/10';
-  return <><PageHeading eyebrow="Student account" title="Your profile" description="Keep the information you share with WDC up to date. Only the essentials are required."/><form onSubmit={save} className="max-w-3xl rounded-3xl border border-line bg-white p-6 shadow-card sm:p-8"><div className="grid gap-5 sm:grid-cols-2"><label className="text-sm font-medium">Name<input className={inputClass} name="name" required minLength="2" maxLength="80" defaultValue={user.name}/></label><label className="text-sm font-medium">Email<input className={`${inputClass} bg-canvas text-muted`} type="email" value={user.email} disabled/></label><label className="text-sm font-medium">Branch<input className={inputClass} name="branch" maxLength="80" defaultValue={user.branch} placeholder="Optional"/></label><label className="text-sm font-medium">Year<input className={`${inputClass} bg-canvas`} name="year" value={2} readOnly /></label><fieldset className="text-sm font-medium sm:col-span-2"><legend className="mb-2">Learning tracks <span className="font-normal text-muted">(choose one or both)</span></legend><div className="grid gap-2 sm:grid-cols-2">{(tracksQuery.data?.tracks || []).map((track) => <label key={track._id} className="flex cursor-pointer items-center gap-3 rounded-xl border border-line bg-white p-3"><input className="h-4 w-4 accent-[#176b52]" type="checkbox" name="selectedTrackIds" value={String(track._id)} defaultChecked={enrolledIds.includes(String(track._id))} /><span className="font-medium">{track.title}</span></label>)}</div></fieldset><label className="text-sm font-medium">GitHub profile <span className="font-normal text-muted">(optional)</span><input className={inputClass} type="url" name="githubUrl" maxLength="500" defaultValue={user.githubUrl} placeholder="https://github.com/username"/></label><label className="text-sm font-medium">Portfolio <span className="font-normal text-muted">(optional)</span><input className={inputClass} type="url" name="portfolioUrl" maxLength="500" defaultValue={user.portfolioUrl} placeholder="https://your-portfolio.com"/></label></div><div className="mt-6 flex flex-wrap items-center gap-4"><button disabled={busy} className="rounded-xl bg-forest px-5 py-3 text-sm font-semibold text-white disabled:opacity-60">{busy ? 'Saving…' : 'Save profile'}</button>{feedback && <p role="status" className="text-sm text-muted">{feedback}</p>}</div></form></>;
+  return <><PageHeading eyebrow="Student account" title="Your profile" description="Keep the information you share with WDC up to date. Only the essentials are required."/><form onSubmit={save} className="max-w-3xl rounded-3xl border border-line bg-white p-6 shadow-card sm:p-8"><div className="grid gap-5 sm:grid-cols-2"><label className="text-sm font-medium">Name<input className={inputClass} name="name" required minLength="2" maxLength="80" defaultValue={user.name}/></label><label className="text-sm font-medium">Email<input className={`${inputClass} bg-canvas text-muted`} type="email" value={user.email} disabled/></label><label className="text-sm font-medium">Branch<input className={inputClass} name="branch" maxLength="80" defaultValue={user.branch} placeholder="Optional"/></label><label className="text-sm font-medium">Year<input className={`${inputClass} bg-canvas`} name="year" value={2} readOnly /></label><fieldset className="text-sm font-medium sm:col-span-2"><legend className="mb-2">Learning tracks <span className="font-normal text-muted">(choose one or both)</span></legend><p className="mb-2 text-xs font-normal text-muted">Saving never removes a track or its progress — ticking a new box adds it to your enrollment.</p><div className="grid gap-2 sm:grid-cols-2">{(tracksQuery.data?.tracks || []).map((track) => <label key={track._id} className="flex cursor-pointer items-center gap-3 rounded-xl border border-line bg-white p-3"><input className="h-4 w-4 accent-[#176b52]" type="checkbox" name="selectedTrackIds" value={String(track._id)} defaultChecked={enrolledIds.includes(String(track._id))} /><span className="font-medium">{track.title}</span></label>)}</div></fieldset><label className="text-sm font-medium">GitHub profile <span className="font-normal text-muted">(optional)</span><input className={inputClass} type="url" name="githubUrl" maxLength="500" defaultValue={user.githubUrl} placeholder="https://github.com/username"/></label><label className="text-sm font-medium">Portfolio <span className="font-normal text-muted">(optional)</span><input className={inputClass} type="url" name="portfolioUrl" maxLength="500" defaultValue={user.portfolioUrl} placeholder="https://your-portfolio.com"/></label></div><div className="mt-6 flex flex-wrap items-center gap-4"><button disabled={busy} className="rounded-xl bg-forest px-5 py-3 text-sm font-semibold text-white disabled:opacity-60">{busy ? 'Saving…' : 'Save profile'}</button>{feedback && <p role="status" className="text-sm text-muted">{feedback}</p>}</div></form></>;
 }
 
 function NotFoundPage() { return <section className="rounded-3xl border border-line bg-white p-8"><Eyebrow>404</Eyebrow><h1 className="mt-2 text-3xl font-semibold">This page isn’t here.</h1><Link className="mt-4 inline-block text-sm font-semibold text-forest" to="/">Back to your overview →</Link></section>; }
