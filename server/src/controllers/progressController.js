@@ -3,12 +3,14 @@ import Resource from '../models/Resource.js';
 import Task from '../models/Task.js';
 import Track from '../models/Track.js';
 import { buildProgressSummary, isValidFigmaUrl, isWeekUnlocked } from '../services/progressService.js';
+import { isAssignedToTrack } from '../utils/trackAccess.js';
 import HttpError from '../utils/HttpError.js';
 
 async function getSelectedTrack(user) {
   if (!user.selectedTrackId) throw new HttpError(400, 'Choose a learning track in your profile first.');
   const track = await Track.findOne({ _id: user.selectedTrackId, isActive: true });
   if (!track) throw new HttpError(404, 'Your selected learning track is no longer available.');
+  if (!isAssignedToTrack(user, track._id)) throw new HttpError(403, 'You are not assigned to this learning track.');
   return track;
 }
 
@@ -62,10 +64,14 @@ export async function completeItem(request, response) {
     assertWeekUnlocked(track, summary, task.weekKey);
 
     const isWeeklyTask = Boolean(task.weekKey && !task.roundId && track.weeks.some((week) => week.weekKey === task.weekKey));
+    // The Figma-link submission gate is a UI/UX-track requirement. Weekly
+    // tasks on other tracks (e.g. Technical) complete with a plain
+    // mark-complete, exactly like non-weekly tasks do today.
+    const isDesignLinkTask = isWeeklyTask && track.slug === 'ui-ux';
     const existingSubmission = (progress?.taskSubmissions ?? []).find((submission) => String(submission.taskId) === String(task._id));
 
     if (submitOnly) {
-      if (!isWeeklyTask) throw new HttpError(400, 'Figma links are only required for weekly learning tasks.');
+      if (!isDesignLinkTask) throw new HttpError(400, 'Figma links are only required for weekly learning tasks.');
       if (!isValidFigmaUrl(figmaUrl)) throw new HttpError(400, 'Please enter a valid Figma link.');
 
       const taskSubmissions = [...(progress?.taskSubmissions ?? [])];
@@ -82,7 +88,7 @@ export async function completeItem(request, response) {
       return getProgress(request, response);
     }
 
-    if (isWeeklyTask && completed) {
+    if (isDesignLinkTask && completed) {
       if (figmaUrl !== undefined && !isValidFigmaUrl(figmaUrl)) {
         throw new HttpError(400, 'Please enter a valid Figma link.');
       }
