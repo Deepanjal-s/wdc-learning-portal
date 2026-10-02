@@ -1,6 +1,8 @@
 import mongoose from 'mongoose';
 import Track from '../models/Track.js';
+import User from '../models/User.js';
 import HttpError from '../utils/HttpError.js';
+import { getUserTrackIds } from '../utils/userTracks.js';
 
 function publicUser(user) {
   return {
@@ -37,16 +39,22 @@ export async function updateProfile(request, response) {
   if (year !== undefined && year !== null && (!Number.isInteger(Number(year)) || Number(year) !== 2)) {
     throw new HttpError(400, 'Only second-year students can use this portal.');
   }
+  // Track enrollment is additive-only: saving the profile can add tracks but
+  // never drops an enrolled track (or its progress). Track removal, when the
+  // coordinators need it, will live in the admin dashboard.
+  const alreadyEnrolled = getUserTrackIds(request.user).map((id) => String(id));
   if (selectedTrackId !== undefined && selectedTrackIds === undefined) {
     const track = await Track.findOne({ _id: selectedTrackId, isActive: true }).select('_id');
     if (!track) throw new HttpError(404, 'Selected learning track was not found.');
-    updates.selectedTrackIds = [track._id];
+    const merged = [...new Set([...alreadyEnrolled, String(track._id)])];
+    updates.selectedTrackIds = merged.map((id) => new mongoose.Types.ObjectId(id));
+    updates.selectedTrackId = updates.selectedTrackIds[0];
   }
   if (selectedTrackIds !== undefined) {
     if (!Array.isArray(selectedTrackIds) || selectedTrackIds.length === 0) {
       throw new HttpError(400, 'Select at least one learning track.');
     }
-    const ids = [...new Set(selectedTrackIds.map((id) => String(id)))];
+    const ids = [...new Set([...alreadyEnrolled, ...selectedTrackIds.map((id) => String(id))])];
     if (!ids.every((id) => mongoose.isValidObjectId(id))) {
       throw new HttpError(400, 'One or more learning track ids are invalid.');
     }
@@ -68,4 +76,37 @@ export async function updateProfile(request, response) {
   Object.assign(request.user, updates);
   await request.user.save();
   return response.json({ user: publicUser(request.user) });
+}
+
+/**
+ * Adds one learning track to the student's enrollment (POST /api/student/profile/tracks,
+ * body `{ slug }`). Additive only: the track is appended with `$addToSet`, never
+ * replaces or removes existing enrollment, and never touches progress documents.
+ * The legacy `selectedTrackId` keeps pointing at the first enrolled track.
+ */
+export async function addTrack(request, response) {
+  const { slug } = request.body ?? {};
+  if (typeof slug !== 'string' || slug.trim().length === 0) {
+    throw new HttpError(400, 'Provide the slug of the learning track to add.');
+  }
+  const track = await Track.findOne({ slug: slug.trim().toLowerCase(), isActive: true }).select('_id slug title');
+  if (!track) throw new HttpError(400, 'That learning track is not available.');
+
+  const enrolledIds = getUserTrackIds(request.user).map((id) => String(id));
+  if (!enrolledIds.includes(String(track._id))) enrolledIds.push(String(track._id));
+
+  const user = await User.findByIdAndUpdate(
+    request.user._id,
+    {
+      $addToSet: { selectedTrackIds: track._id },
+      $set: { selectedTrackId: new mongoose.Types.ObjectId(enrolledIds[0]) },
+    },
+    { new: true },
+  );
+  if (!user) throw new HttpError(404, 'Your account was not found.');
+
+  return response.json({
+    user: publicUser(user),
+    addedTrack: { id: String(track._id), slug: track.slug, title: track.title },
+  });
 }

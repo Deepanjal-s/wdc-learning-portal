@@ -64,8 +64,11 @@ export async function register(request, response) {
   const passwordHash = await bcrypt.hash(password, 12);
 
   // Optional track selection at signup: an array of track slugs.
-  // Falls back to the UI/UX track so existing behavior is unchanged.
-  const requestedSlugs = Array.isArray(tracks) && tracks.length > 0 ? tracks : ['ui-ux'];
+  // Older clients that send no `tracks` field keep the previous behavior and
+  // default to the UI/UX track; an explicitly empty selection is rejected.
+  const tracksProvided = tracks !== undefined;
+  const requestedSlugs = tracksProvided ? tracks : ['ui-ux'];
+  if (!Array.isArray(requestedSlugs)) throw new HttpError(400, 'Select at least one learning track.');
   const normalizedSlugs = [...new Set(
     requestedSlugs.map((slug) => String(slug).trim().toLowerCase()).filter(Boolean),
   )];

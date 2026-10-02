@@ -4,7 +4,7 @@ import Resource from '../models/Resource.js';
 import Task from '../models/Task.js';
 import Track from '../models/Track.js';
 import { buildProgressSummary } from '../services/progressService.js';
-import { getUserTrackIds } from '../utils/userTracks.js';
+import { getUserTrackIds, resolveUserTrack } from '../utils/userTracks.js';
 
 function serializeUser(user) {
   return {
@@ -55,11 +55,12 @@ export async function getDashboard(request, response) {
   }
 
   // Primary track drives the existing single-track response shape: an explicitly
-  // requested (and enrolled) ?trackId= wins, otherwise the first enrolled track.
+  // requested ?trackId= wins, but only when the student is enrolled in it —
+  // resolveUserTrack throws 403 otherwise, so URL edits cannot leak other tracks.
   let primary = summaries[0];
   if (request.query.trackId) {
-    const requested = String(request.query.trackId).trim().toLowerCase();
-    const match = summaries.find((item) => item.track.id === requested || item.track.slug === requested);
+    const track = await resolveUserTrack(request.user, request.query.trackId);
+    const match = summaries.find((item) => item.track.id === String(track._id));
     if (match) primary = match;
   }
 

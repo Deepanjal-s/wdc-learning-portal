@@ -20,11 +20,14 @@ export function getUserTrackIds(user) {
  * Resolves which track a request is operating on.
  * - `requestedTrackId` may be a track id or slug (from query/body); when omitted,
  *   the user's first enrolled track is used (preserves single-track behavior).
- * - The resolved track must be one of the user's enrolled tracks and active.
+ * - The resolved track must be one of the user's enrolled tracks and active;
+ *   otherwise a 403 is thrown so students cannot reach other tracks by editing
+ *   the URL. Coordinators (`admin` role) keep access to every active track.
  */
 export async function resolveUserTrack(user, requestedTrackId) {
+  const isAdmin = user.role === 'admin';
   const enrolledIds = getUserTrackIds(user).map((id) => String(id));
-  if (enrolledIds.length === 0) {
+  if (!isAdmin && enrolledIds.length === 0) {
     throw new HttpError(400, 'Choose a learning track in your profile first.');
   }
 
@@ -34,9 +37,12 @@ export async function resolveUserTrack(user, requestedTrackId) {
       ? { _id: requestedTrackId }
       : { slug: String(requestedTrackId).trim().toLowerCase() };
     track = await Track.findOne({ ...query, isActive: true });
-    if (!track || !enrolledIds.includes(String(track._id))) {
+    if (!track || (!isAdmin && !enrolledIds.includes(String(track._id)))) {
       throw new HttpError(403, 'You are not enrolled in this learning track.');
     }
+  } else if (isAdmin) {
+    track = await Track.findOne({ isActive: true }).sort({ title: 1 });
+    if (!track) throw new HttpError(404, 'No learning tracks are available.');
   } else {
     track = await Track.findOne({ _id: enrolledIds[0], isActive: true });
     if (!track) throw new HttpError(404, 'Your selected learning track is no longer available.');
