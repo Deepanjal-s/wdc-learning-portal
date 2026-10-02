@@ -5,6 +5,7 @@ import Resource from '../models/Resource.js';
 import Task from '../models/Task.js';
 import Track from '../models/Track.js';
 import { buildProgressSummary } from '../services/progressService.js';
+import { isAssignedToTrack } from '../utils/trackAccess.js';
 import HttpError from '../utils/HttpError.js';
 
 async function findTrack(identifier) {
@@ -25,6 +26,11 @@ export async function getTrack(request, response) {
 
 export async function getRoadmap(request, response) {
   const track = await findTrack(request.params.trackId);
+  // Roadmap access follows the student's assignment: requesting another
+  // track's roadmap directly (e.g. by typing the URL) is rejected.
+  if (!isAssignedToTrack(request.user, track._id)) {
+    throw new HttpError(403, 'You are not assigned to this learning track.');
+  }
   const [resources, tasks, progress] = await Promise.all([
     Resource.find({ trackId: track._id, isPublished: true }).select('slug title weekKey topicKey type url').lean(),
     Task.find({ trackId: track._id, isPublished: true }).select('slug title weekKey difficulty estimatedMinutes').sort({ createdAt: 1 }).lean(),
@@ -42,7 +48,7 @@ export async function getRoadmap(request, response) {
     tasks: tasks.filter((task) => task.weekKey === week.weekKey),
   }));
 
-  return response.json({ track: { id: String(track._id), slug: track.slug, title: track.title }, weeks, progress: summary });
+  return response.json({ track: { id: String(track._id), slug: track.slug, title: track.title, description: track.description }, weeks, progress: summary });
 }
 
 export async function listResources(request, response) {
