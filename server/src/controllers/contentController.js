@@ -5,6 +5,7 @@ import Resource from '../models/Resource.js';
 import Task from '../models/Task.js';
 import Track from '../models/Track.js';
 import { buildProgressSummary } from '../services/progressService.js';
+import { resolveUserTrack } from '../utils/userTracks.js';
 import HttpError from '../utils/HttpError.js';
 
 async function findTrack(identifier) {
@@ -14,17 +15,29 @@ async function findTrack(identifier) {
   return track;
 }
 
+/**
+ * Resolves a `?trackId=` filter to an enrolled track. Track-scoped browsing is
+ * only available to signed-in users enrolled in that track, so students cannot
+ * reach another track's content by editing the URL. Unfiltered lists stay public.
+ */
+async function resolveFilteredTrack(request) {
+  if (!request.query.trackId) return null;
+  if (!request.user) throw new HttpError(401, 'Please log in to continue.');
+  return resolveUserTrack(request.user, request.query.trackId);
+}
+
 export async function listTracks(_request, response) {
   const tracks = await Track.find({ isActive: true }).select('slug title description weeks createdAt').sort({ title: 1 });
   return response.json({ tracks });
 }
 
 export async function getTrack(request, response) {
-  return response.json({ track: await findTrack(request.params.trackId) });
+  const track = await resolveUserTrack(request.user, request.params.trackId);
+  return response.json({ track });
 }
 
 export async function getRoadmap(request, response) {
-  const track = await findTrack(request.params.trackId);
+  const track = await resolveUserTrack(request.user, request.params.trackId);
   const [resources, tasks, progress] = await Promise.all([
     Resource.find({ trackId: track._id, isPublished: true }).select('slug title weekKey topicKey type url').lean(),
     Task.find({ trackId: track._id, isPublished: true }).select('slug title weekKey difficulty estimatedMinutes').sort({ createdAt: 1 }).lean(),
@@ -47,10 +60,8 @@ export async function getRoadmap(request, response) {
 
 export async function listResources(request, response) {
   const query = { isPublished: true };
-  if (request.query.trackId) {
-    const track = await findTrack(request.query.trackId);
-    query.trackId = track._id;
-  }
+  const track = await resolveFilteredTrack(request);
+  if (track) query.trackId = track._id;
   for (const field of ['weekKey', 'topicKey', 'type']) {
     if (typeof request.query[field] === 'string') query[field] = request.query[field];
   }
@@ -61,15 +72,16 @@ export async function listResources(request, response) {
 export async function getResource(request, response) {
   const resource = await Resource.findOne({ _id: request.params.id, isPublished: true }).populate('trackId', 'slug title');
   if (!resource) throw new HttpError(404, 'Resource was not found.');
+  // Single-item reads are track-scoped: students can only open resources from
+  // tracks they are enrolled in (403 otherwise).
+  await resolveUserTrack(request.user, String(resource.trackId._id));
   return response.json({ resource });
 }
 
 export async function listTasks(request, response) {
   const query = { isPublished: true };
-  if (request.query.trackId) {
-    const track = await findTrack(request.query.trackId);
-    query.trackId = track._id;
-  }
+  const track = await resolveFilteredTrack(request);
+  if (track) query.trackId = track._id;
   if (typeof request.query.weekKey === 'string') query.weekKey = request.query.weekKey;
   if (request.query.roundNumber) {
     const round = await RecruitmentRound.findOne({ roundNumber: Number(request.query.roundNumber), status: { $ne: 'draft' } });
@@ -83,6 +95,9 @@ export async function listTasks(request, response) {
 export async function getTask(request, response) {
   const task = await Task.findOne({ _id: request.params.id, isPublished: true }).populate('trackId', 'slug title');
   if (!task) throw new HttpError(404, 'Task was not found.');
+  // Single-item reads are track-scoped: students can only open tasks from
+  // tracks they are enrolled in (403 otherwise).
+  await resolveUserTrack(request.user, String(task.trackId._id));
   return response.json({ task });
 }
 
