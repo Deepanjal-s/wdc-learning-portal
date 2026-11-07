@@ -73,19 +73,19 @@ export const taskSeeds = [
   {
     slug: 'recreate-simple-profile', title: 'Recreate a simple profile screen', description: 'Practice the Figma canvas, text, shapes, and basic spacing.',
     instructions: 'Create a mobile profile screen in Figma with an avatar placeholder, a name and short bio, three profile details, and one primary action. Use frames, sensible layer names, and consistent spacing. Share a Figma link when ready; for now, mark complete after checking your work.',
-    weekKey: 'week-1', difficulty: 'beginner', estimatedMinutes: 60, submissionType: 'mark-complete',
+    weekKey: 'week-1', difficulty: 'beginner', estimatedMinutes: 60, submissionType: 'design-link',
     evaluationCriteria: ['Layers are clearly named and grouped', 'Text has a clear hierarchy', 'Spacing and alignment feel consistent', 'The primary action is easy to identify'],
   },
   {
     slug: 'recreate-service-screen', title: 'Recreate a service booking screen', description: 'Apply typography, color, alignment, and visual hierarchy to a detailed interface.',
     instructions: 'Design a mobile service-booking screen with a top bar, service title, provider details, date selector, price summary, and primary booking button. Establish a type scale, use a restrained palette, and align related information. Add your Figma link in your own notes; file submission will be added later.',
-    weekKey: 'week-2', difficulty: 'intermediate', estimatedMinutes: 90, submissionType: 'mark-complete',
+    weekKey: 'week-2', difficulty: 'intermediate', estimatedMinutes: 90, submissionType: 'design-link',
     evaluationCriteria: ['The most important action is visually prominent', 'Typography is readable and consistent', 'Color choices support meaning and contrast', 'Layout uses consistent alignment and spacing'],
   },
   {
     slug: 'build-reusable-ui-kit', title: 'Build a small reusable UI kit', description: 'Create reusable components and demonstrate at least two variants.',
     instructions: 'Build a compact mobile interface containing buttons, input fields, and information cards. Turn each repeated element into a component, create variants for relevant states or sizes, and use Auto Layout so the components resize cleanly.',
-    weekKey: 'week-3', difficulty: 'intermediate', estimatedMinutes: 100, submissionType: 'mark-complete',
+    weekKey: 'week-3', difficulty: 'intermediate', estimatedMinutes: 100, submissionType: 'design-link',
     evaluationCriteria: ['Repeated UI is componentized', 'Variants communicate meaningful states', 'Auto Layout responds to content changes', 'Component names and properties are understandable'],
   },
   {

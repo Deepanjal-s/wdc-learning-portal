@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { buildProgressSummary, isValidFigmaUrl, isWeekUnlocked } from './progressService.js';
+import { buildProgressSummary, isValidFigmaUrl, isValidHttpsUrl, isWeekUnlocked } from './progressService.js';
 
 const track = {
   _id: 'track-1',
@@ -99,5 +99,31 @@ test('includes the student task submission URL in the progress summary', () => {
   assert.deepEqual(summary.taskSubmissions, [{
     taskId: 'task-1',
     figmaUrl: 'https://www.figma.com/design/abc123/example',
+    submissionUrl: 'https://www.figma.com/design/abc123/example',
   }]);
+});
+
+test('prefers submissionUrl over the legacy figmaUrl in the progress summary', () => {
+  const summary = buildProgressSummary(track, tasks, {
+    completedTopicKeys: [],
+    completedResourceIds: [],
+    completedTaskIds: [],
+    taskSubmissions: [{ taskId: 'task-1', submissionUrl: 'https://github.com/wdc/student-repo' }],
+  });
+
+  assert.deepEqual(summary.taskSubmissions, [{
+    taskId: 'task-1',
+    figmaUrl: null,
+    submissionUrl: 'https://github.com/wdc/student-repo',
+  }]);
+});
+
+test('accepts valid HTTPS links for code submissions', () => {
+  assert.equal(isValidHttpsUrl('https://github.com/wdc/student-repo'), true);
+  assert.equal(isValidHttpsUrl('https://codepen.io/student/pen/abc123'), true);
+  assert.equal(isValidHttpsUrl('https://student-demo.vercel.app/'), true);
+  assert.equal(isValidHttpsUrl('http://github.com/wdc/repo'), false);
+  assert.equal(isValidHttpsUrl('not-a-url'), false);
+  assert.equal(isValidHttpsUrl(''), false);
+  assert.equal(isValidHttpsUrl(undefined), false);
 });

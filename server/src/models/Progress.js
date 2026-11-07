@@ -9,7 +9,10 @@ const progressSchema = new mongoose.Schema(
     completedTaskIds: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Task' }],
     taskSubmissions: [{
       taskId: { type: mongoose.Schema.Types.ObjectId, ref: 'Task', required: true },
-      figmaUrl: { type: String, required: true, trim: true, maxlength: 2048 },
+      // Legacy Figma-link submissions. Kept so old data and old clients keep working;
+      // new submissions prefer `submissionUrl` below.
+      figmaUrl: { type: String, trim: true, maxlength: 2048 },
+      submissionUrl: { type: String, trim: true, maxlength: 2048 },
     }],
   },
   { timestamps: true },

@@ -1,14 +1,15 @@
 import { Router } from 'express';
 import * as content from '../controllers/contentController.js';
 import { requireAuth } from '../middleware/requireAuth.js';
+import { optionalAuth } from '../middleware/optionalAuth.js';
 
 const router = Router();
 router.get('/tracks', content.listTracks);
-router.get('/tracks/:trackId', content.getTrack);
+router.get('/tracks/:trackId', requireAuth, content.getTrack);
 router.get('/roadmap/:trackId', requireAuth, content.getRoadmap);
-router.get('/resources', content.listResources);
+router.get('/resources', optionalAuth, content.listResources);
 router.get('/resources/:id', content.getResource);
-router.get('/tasks', content.listTasks);
+router.get('/tasks', optionalAuth, content.listTasks);
 router.get('/tasks/:id', content.getTask);
 router.get('/recruitment-rounds', content.listRecruitmentRounds);
 router.get('/recruitment-rounds/:roundNumber', content.getRecruitmentRound);
