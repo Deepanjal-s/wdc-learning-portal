@@ -7,6 +7,11 @@ export default function errorHandler(error, _request, response, _next) {
     return response.status(409).json({ message: 'An account with this email already exists.' });
   }
 
+  // e.g. a malformed ObjectId in a body or URL param: the client's fault, not ours.
+  if (error.name === 'CastError') {
+    return response.status(400).json({ message: 'One or more supplied ids are invalid.' });
+  }
+
   if (error.name === 'ValidationError') {
     return response.status(400).json({ message: 'One or more supplied values are invalid.' });
   }
