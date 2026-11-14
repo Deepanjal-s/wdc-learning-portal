@@ -13,7 +13,7 @@ const taskSchema = new mongoose.Schema(
     estimatedMinutes: { type: Number, min: 1 },
     deadline: { type: Date, default: null },
     referenceImageUrl: { type: String, trim: true, maxlength: 1000 },
-    submissionType: { type: String, enum: ['mark-complete', 'design-link', 'file'], default: 'mark-complete' },
+    submissionType: { type: String, enum: ['mark-complete', 'design-link', 'code-link', 'file'], default: 'mark-complete' },
     evaluationCriteria: { type: [String], default: [] },
     isPublished: { type: Boolean, default: false },
   },
