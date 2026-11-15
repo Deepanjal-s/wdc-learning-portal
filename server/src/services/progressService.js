@@ -4,7 +4,9 @@ export function buildProgressSummary(track, tasks, progress, resources = []) {
   const completedTaskIds = new Set((progress?.completedTaskIds ?? []).map((id) => String(id)));
   const taskSubmissions = (progress?.taskSubmissions ?? []).map((submission) => ({
     taskId: String(submission.taskId),
-    figmaUrl: submission.figmaUrl,
+    figmaUrl: submission.figmaUrl ?? null,
+    // New readers should use submissionUrl; it falls back to the legacy figmaUrl.
+    submissionUrl: submission.submissionUrl ?? submission.figmaUrl ?? null,
   }));
   const orderedSteps = [];
 
@@ -68,8 +70,18 @@ export function buildProgressSummary(track, tasks, progress, resources = []) {
   };
 }
 
-export function isValidFigmaUrl(value) {
+export function isValidHttpsUrl(value) {
   if (typeof value !== 'string' || value.trim().length === 0 || value.length > 2048) return false;
+
+  try {
+    const url = new URL(value.trim());
+    return url.protocol === 'https:' && url.hostname.includes('.');
+  } catch {
+    return false;
+  }
+}
+
+export function isValidFigmaUrl(value) {  if (typeof value !== 'string' || value.trim().length === 0 || value.length > 2048) return false;
 
   try {
     const url = new URL(value.trim());

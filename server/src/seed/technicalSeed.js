@@ -1,0 +1,131 @@
+export const technicalTrackSeed = {
+  slug: 'technical',
+  title: 'Technical Development',
+  description: 'Round 2 preparation: four weeks of HTML, CSS, and JavaScript fundamentals ending with a timed mock practical.',
+  isActive: true,
+  weeks: [
+    {
+      weekKey: 'week-1',
+      number: 1,
+      title: 'HTML + CSS',
+      description: 'Structure pages with semantic HTML and forms, then style them with CSS basics, Flexbox, and responsive design. About 4–6 hours.',
+      topics: [
+        { topicKey: 'html-basics', title: 'HTML basics', description: 'Tags, attributes, headings, paragraphs, links, images, and lists.' },
+        { topicKey: 'semantic-html', title: 'Semantic HTML', description: 'Use header, nav, main, section, article, and footer — and understand why they matter.' },
+        { topicKey: 'html-forms', title: 'Forms', description: 'Labels, inputs, buttons, and basic form behavior.' },
+        { topicKey: 'css-basics', title: 'CSS basics', description: 'Selectors, colors, text styling, and the box model.' },
+        { topicKey: 'flexbox', title: 'Flexbox', description: 'Align navbars, cards, and page sections with flexible boxes.' },
+        { topicKey: 'responsive-design', title: 'Responsive design', description: 'Relative units and media queries so pages work on phones and desktops.' },
+      ],
+    },
+    {
+      weekKey: 'week-2',
+      number: 2,
+      title: 'JavaScript Basics',
+      description: 'The language fundamentals: variables, data types, conditions, loops, functions, arrays, and objects. About 4–6 hours.',
+      topics: [
+        { topicKey: 'js-variables', title: 'Variables', description: 'Declare values with let and const, and name them well.' },
+        { topicKey: 'js-data-types', title: 'Data types', description: 'Strings, numbers, booleans, null, and undefined.' },
+        { topicKey: 'js-conditions', title: 'Conditions', description: 'Branch logic with if/else and comparisons.' },
+        { topicKey: 'js-loops', title: 'Loops', description: 'Repeat work with for and while loops.' },
+        { topicKey: 'js-functions', title: 'Functions', description: 'Define and call functions; parameters and return values.' },
+        { topicKey: 'js-arrays', title: 'Arrays', description: 'Store and transform ordered lists of data.' },
+        { topicKey: 'js-objects', title: 'Objects', description: 'Group related data with key–value pairs.' },
+      ],
+    },
+    {
+      weekKey: 'week-3',
+      number: 3,
+      title: 'DOM + Events',
+      description: 'Make pages interactive: selecting elements, handling events, and working with forms. About 4–6 hours.',
+      topics: [
+        { topicKey: 'dom-basics', title: 'DOM basics', description: 'What the document object model is and how scripts see the page.' },
+        { topicKey: 'dom-selecting', title: 'Selecting elements', description: 'Find elements with getElementById, querySelector, and querySelectorAll.' },
+        { topicKey: 'dom-events', title: 'Events', description: 'Click, input, and submit events — how the browser tells you something happened.' },
+        { topicKey: 'event-listeners', title: 'Event listeners', description: 'Respond to events with addEventListener.' },
+        { topicKey: 'dom-manipulation', title: 'Basic DOM manipulation', description: 'Change text, styles, and content on the page.' },
+        { topicKey: 'form-handling', title: 'Form handling', description: 'Read input values and handle submit with JavaScript.' },
+      ],
+    },
+    {
+      weekKey: 'week-4',
+      number: 4,
+      title: 'Round 2 Practice',
+      description: 'Revise HTML, CSS, JavaScript, and the DOM, then practice under timed conditions. About 4–6 hours.',
+      topics: [
+        { topicKey: 'revise-html-css', title: 'Revise HTML + CSS', description: 'Semantic structure, Flexbox, and responsive layout.' },
+        { topicKey: 'revise-js-basics', title: 'Revise JavaScript basics', description: 'Variables, conditions, loops, functions, arrays, and objects.' },
+        { topicKey: 'revise-dom-events', title: 'Revise DOM + events', description: 'Selecting elements, listeners, and form handling.' },
+        { topicKey: 'mock-exam-strategy', title: 'Mock exam strategy', description: 'Plan the two hours: build order, time checks, and a finishing pass.' },
+      ],
+    },
+    {
+      weekKey: 'round-3',
+      number: 5,
+      title: 'Round 3 — Advanced JavaScript & Project Development',
+      description: 'Details will be announced separately.',
+      topics: [],
+    },
+    {
+      weekKey: 'round-4',
+      number: 6,
+      title: 'Round 4 — Interview',
+      description: 'Details will be announced separately.',
+      topics: [],
+    },
+  ],
+};
+
+export const technicalResourceSeeds = [
+  { slug: 'mdn-html-basics', title: 'HTML basics', description: 'MDN guide to structuring content: headings, paragraphs, links, and images.', url: 'https://developer.mozilla.org/en-US/docs/Learn/Getting_started_with_the_web/HTML_basics', type: 'documentation', weekKey: 'week-1', difficulty: 'beginner', estimatedMinutes: 40 },
+  { slug: 'mdn-html-forms', title: 'Your first form', description: 'Build an accessible form with labels, inputs, and buttons.', url: 'https://developer.mozilla.org/en-US/docs/Learn/Forms/Your_first_form', type: 'documentation', weekKey: 'week-1', topicKey: 'html-forms', difficulty: 'beginner', estimatedMinutes: 45 },
+  { slug: 'mdn-css-basics', title: 'CSS basics', description: 'MDN introduction to selectors, properties, and styling text and boxes.', url: 'https://developer.mozilla.org/en-US/docs/Learn/Getting_started_with_the_web/CSS_basics', type: 'documentation', weekKey: 'week-1', topicKey: 'css-basics', difficulty: 'beginner', estimatedMinutes: 40 },
+  { slug: 'mdn-css-flexbox', title: 'Flexbox', description: 'Learn flexible box layout for navbars, cards, and page sections.', url: 'https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Flexbox', type: 'documentation', weekKey: 'week-1', topicKey: 'flexbox', difficulty: 'beginner', estimatedMinutes: 50 },
+  { slug: 'mdn-responsive-design', title: 'Responsive design', description: 'Make layouts adapt to phones and desktops with media queries.', url: 'https://developer.mozilla.org/en-US/docs/Learn/CSS/CSS_layout/Responsive_Design', type: 'documentation', weekKey: 'week-1', topicKey: 'responsive-design', difficulty: 'beginner', estimatedMinutes: 40 },
+  { slug: 'mdn-js-first-steps', title: 'JavaScript first steps', description: 'MDN path through variables, functions, and first scripts.', url: 'https://developer.mozilla.org/en-US/docs/Learn/JavaScript/First_steps', type: 'documentation', weekKey: 'week-2', difficulty: 'beginner', estimatedMinutes: 60 },
+  { slug: 'javascript-info-first-steps', title: 'JavaScript.info: first steps', description: 'Variables, data types, and basic operators explained with examples.', url: 'https://javascript.info/first-steps', type: 'documentation', weekKey: 'week-2', difficulty: 'beginner', estimatedMinutes: 75 },
+  { slug: 'mdn-js-grammar-types', title: 'Grammar and types', description: 'MDN reference for declarations, data types, and literals — good for revision.', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Grammar_and_types', type: 'documentation', weekKey: 'week-2', difficulty: 'beginner', estimatedMinutes: 45 },
+  { slug: 'mdn-dom-intro', title: 'Introduction to the DOM', description: 'Understand the document object model before manipulating pages.', url: 'https://developer.mozilla.org/en-US/docs/Web/API/Document_Object_Model/Introduction', type: 'documentation', weekKey: 'week-3', topicKey: 'dom-basics', difficulty: 'beginner', estimatedMinutes: 45 },
+  { slug: 'mdn-js-events', title: 'Introduction to events', description: 'MDN guide to handling clicks, input, and other events.', url: 'https://developer.mozilla.org/en-US/docs/Learn/JavaScript/Building_blocks/Events', type: 'documentation', weekKey: 'week-3', topicKey: 'dom-events', difficulty: 'beginner', estimatedMinutes: 60 },
+  { slug: 'javascript-info-browser-events', title: 'JavaScript.info: browser events', description: 'addEventListener and common event patterns with live examples.', url: 'https://javascript.info/introduction-browser-events', type: 'documentation', weekKey: 'week-3', topicKey: 'event-listeners', difficulty: 'beginner', estimatedMinutes: 40 },
+  { slug: 'mdn-js-guide', title: 'JavaScript Guide', description: 'Deeper MDN reference for revision: grammar, functions, and objects.', url: 'https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide', type: 'documentation', weekKey: 'week-4', difficulty: 'beginner', estimatedMinutes: 60 },
+];
+
+export const technicalTaskSeeds = [
+  {
+    slug: 'responsive-webpage-html-css', title: 'Build one simple responsive webpage', description: 'Put Week 1 together: semantic HTML styled with CSS, laid out with Flexbox, responsive on mobile.',
+    instructions: 'Build a single page for a fictional café, club, or event. Use semantic tags (header, nav, main, section, footer). Style it with CSS: a navbar laid out with Flexbox (logo left, links right), a short hero with a heading and one button, three info cards in a row, and a footer. Then add one media query (max-width: 700px) so the cards stack vertically on a phone. Push your code to GitHub or save it on CodePen, then submit the link below.',
+    weekKey: 'week-1', difficulty: 'intermediate', estimatedMinutes: 90, submissionType: 'code-link',
+    evaluationCriteria: ['Semantic tags are used instead of plain divs', 'Flexbox is used for the navbar and card layout', 'The page stacks cleanly at mobile width', 'Submitted link opens and shows the work'],
+  },
+  {
+    slug: 'js-basics-problems', title: 'Solve small JavaScript problems', description: 'Practice variables, conditions, loops, functions, arrays, and objects.',
+    instructions: 'In one script file, write small functions and run each with console.log to check the output: 1) return the sum of all numbers in an array, 2) find the largest number in an array, 3) reverse a string, 4) count how many times a value appears in an array, 5) create an object describing yourself (name, branch, two interests) and log two of its properties. Keep each solution short and readable.',
+    weekKey: 'week-2', difficulty: 'beginner', estimatedMinutes: 60, submissionType: 'mark-complete',
+    evaluationCriteria: ['All five problems are attempted', 'Each solution runs without errors', 'Functions are short and clearly named', 'Output is checked with console.log'],
+  },
+  {
+    slug: 'interactive-js-project', title: 'Build one small interactive JavaScript project', description: 'Combine DOM selection, events, and form handling in one working page.',
+    instructions: 'Pick one project and build it: (a) Tip calculator — a bill amount input, tip percentage buttons, and the total shown on the page; or (b) Mini quiz — three questions shown one at a time, a running score, and a result at the end. Requirements: read values from form inputs, update the page using DOM methods (no page reload), and handle at least one form submit with JavaScript. Push your code to GitHub or save it on CodePen, then submit the link below.',
+    weekKey: 'week-3', difficulty: 'intermediate', estimatedMinutes: 90, submissionType: 'code-link',
+    evaluationCriteria: ['The page responds to user input', 'DOM is updated with JavaScript, not page reloads', 'Form handling works end to end', 'Submitted link opens and shows the work'],
+  },
+  {
+    slug: 'html-css-mini-task', title: 'Small HTML/CSS task', description: 'A quick layout exercise to warm up for the mock.',
+    instructions: 'Build a product card: an image placeholder box, a product name, a price, one short description line, and one button. Use semantic HTML and style it with plain CSS — comfortable padding, a border or soft shadow, rounded corners, and readable text. Aim for a tidy card about 320px wide, centered on the page.',
+    weekKey: 'week-4', difficulty: 'beginner', estimatedMinutes: 30, submissionType: 'mark-complete',
+    evaluationCriteria: ['Card contains all five elements', 'Spacing and alignment look deliberate', 'Text is readable with good contrast', 'Built with plain HTML and CSS'],
+  },
+  {
+    slug: 'js-mini-task', title: 'Small JavaScript task', description: 'A quick scripting exercise to warm up for the mock.',
+    instructions: 'Add validation to a simple signup form with name, email, and password fields. On submit: show an error message under each invalid field (empty name, badly formatted email, password shorter than 8 characters) and stop the form from submitting; when everything is valid, show a success message instead. Use event listeners — no inline handlers.',
+    weekKey: 'week-4', difficulty: 'beginner', estimatedMinutes: 30, submissionType: 'mark-complete',
+    evaluationCriteria: ['Each rule is validated on submit', 'Errors appear next to the right field', 'Invalid forms do not submit', 'Valid forms show a success message'],
+  },
+  {
+    slug: 'timed-mock-practical', title: 'One timed mock practical', description: 'A two-hour timed practice mirroring the Round 2 format.',
+    instructions: 'Set a two-hour timer and treat this like the real Round 2. Build a small landing page for a fictional product or event: a header with navigation, a hero section, three feature cards, and a footer — styled with CSS. Then add ONE JavaScript interaction (a mobile menu toggle, an FAQ accordion, or a theme switcher). Suggested split: 15 minutes planning the structure, 90 minutes building, 15 minutes checking structure, styling, interactivity, and code readability.',
+    weekKey: 'week-4', difficulty: 'intermediate', estimatedMinutes: 120, submissionType: 'mark-complete',
+    evaluationCriteria: ['All required sections are present and structured', 'CSS layout is deliberate and holds at desktop width', 'The JavaScript interaction works', 'Code is readable and organized'],
+  },
+];
